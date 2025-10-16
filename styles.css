@@ -9,7 +9,8 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-position: center;
   opacity: 1.0;
-  background-color: #f5f5f5;
+  /*background-color: #f5f5f5;*/
+  background-color: transparent;
   margin: 0;
   padding: 0;
   display: flex;
@@ -136,13 +137,15 @@ button:hover {
   padding: 20px;
   margin: 0 auto;
   min-height: 90vh; 
-  background: white; 
+  /*background: white;*/ 
+  background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Mantener la sombra */
   border-radius: 10px;
 }
 
 .section {
-  background: white;
+  /*background: white;*/
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
