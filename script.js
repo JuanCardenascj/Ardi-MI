@@ -351,9 +351,9 @@ function updateDashboard() {
 
 // --- SECCIÓN USUARIO ---
 
-//Gráficos del Usuario!
+/* //Gráficos del Usuario!
 function renderUserStatsChart() {
-    const userRequests = collectionRequests.filter(r => r.userId === currentUser.id);
+    //const userRequests = collectionRequests.filter(r => r.userId === currentUser.id);
     
     // Contar tipos de residuos
     const counts = userRequests.reduce((acc, r) => {
@@ -397,7 +397,7 @@ function renderUserStatsChart() {
             }
         }
     });
-}
+}*/
 
 function updateUserSection() {
   document.getElementById('total-points').textContent = currentUser.points;
@@ -429,7 +429,7 @@ function updateUserSection() {
     }
   });
 
-  renderUserStatsChart();
+  //renderUserStatsChart();
 }
 
 function createCollectionRequest() {
@@ -823,7 +823,7 @@ function deleteVehicle(vehicleId) {
 
 // --- GESTIÓN DE USUARIOS (Empresa - Búsqueda) ---
 
-function searchUsers() {
+/* function searchUsers() {
   const searchTerm = document.getElementById('user-search').value.toLowerCase();
   const managedUsersList = document.getElementById('managed-users-list');
   managedUsersList.innerHTML = '';
@@ -851,6 +851,54 @@ function searchUsers() {
     `;
     managedUsersList.appendChild(li);
   });
+} */
+
+  // script.js - Modifica la función searchUsers
+
+function searchUsers(isCompanyView = false) {
+    // Determinar qué lista y qué campo de búsqueda usar
+    let listElementId = isCompanyView ? 'company-managed-users-list' : 'managed-users-list';
+    let searchInputId = isCompanyView ? 'company-user-search' : 'user-search';
+    
+    const searchText = document.getElementById(searchInputId).value.toLowerCase();
+    
+    // El administrador ve todos los usuarios
+    let filteredUsers = users; 
+    
+    // Si es la vista de compañía, debe filtrar solo por usuarios (type: 'user')
+    if (isCompanyView) {
+        filteredUsers = users.filter(u => u.type === 'user');
+    }
+
+    // Filtrar por texto de búsqueda (nombre o email)
+    if (searchText) {
+        filteredUsers = filteredUsers.filter(u => 
+            u.name.toLowerCase().includes(searchText) || 
+            u.email.toLowerCase().includes(searchText)
+        );
+    }
+
+    const list = document.getElementById(listElementId);
+    list.innerHTML = '';
+
+    filteredUsers.forEach(user => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div>
+                <strong>${user.name}</strong> (${user.email}) - Puntos: ${user.points}
+                <span class="status-badge status-${user.status}">${user.status.toUpperCase()}</span>
+            </div>
+            <div class="user-actions">
+                <button onclick="editUser(${user.id})"><i class="fas fa-edit"></i> Editar</button>
+                <button onclick="toggleUserStatus(${user.id})">
+                    <i class="fas fa-${user.status === 'active' ? 'lock' : 'unlock'}"></i> 
+                    ${user.status === 'active' ? 'Desactivar' : 'Activar'}
+                </button>
+                <button class="logout-btn" onclick="deleteUser(${user.id})"><i class="fas fa-trash"></i> Eliminar</button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
 }
 
 // --- SECCIÓN ADMINISTRADOR ---
