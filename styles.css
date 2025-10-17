@@ -9,8 +9,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-position: center;
   opacity: 1.0;
-  /*background-color: #f5f5f5;*/
-  background-color: transparent;
+  background-color: transparent; /* Permite ver el fondo con el logo */
   margin: 0;
   padding: 0;
   display: flex;
@@ -19,8 +18,7 @@ body {
   min-height: 100vh;
 }
 
-/* Fondo semi-transparente con logo 
-1. Aqui ya ejecuta todo lo necesario, No es necesario volver a sobre escribir todo en el container::after*/
+/* Fondo semi-transparente con logo */
 body::before {
   content: "";
   background: url('images/logo.png') no-repeat;
@@ -43,11 +41,6 @@ body::before {
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-}
-
-/* Fondo semi-transparente con logo (alternativo en .container::after) */
-.container::after {
-  display: none; 
 }
 
 .header {
@@ -130,220 +123,167 @@ button:hover {
   display: none;
 }
 
-/* Estilos para el dashboard */
+/* Estilos específicos del Dashboard */
+
 #dashboard-container {
   width: 100%;
   max-width: 1200px;
   padding: 20px;
-  margin: 0 auto;
-  min-height: 90vh; 
-  /*background: white;*/ 
+  margin: 20px auto; 
+  min-height: 90vh;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Mantener la sombra */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
+  position: relative; 
 }
 
+/* Estilos de las secciones internas */
 .section {
-  /*background: white;*/
   background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.chart-container {
-  margin: 20px 0;
-  position: relative;
-  height: 300px;
-}
-
-#pending-requests-list, #users-list, #companies-list, #all-requests-list, #managed-users-list {
-  list-style: none;
-  padding: 0;
-}
-
-#pending-requests-list li, #users-list li, #companies-list li, #all-requests-list li, #managed-users-list li {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.filter-section {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-}
-
-.filter-section input, .filter-section select {
-  flex: 1;
-  min-width: 150px;
-}
-
-.filter-section button {
-  width: auto;
-  padding: 0 20px;
-}
-
-.logout-btn {
-  background-color: #d32f2f;
-  margin-top: 20px;
-}
-
-.logout-btn:hover {
-  background-color: #b71c1c;
-}
-
-/* Estilos para los Vehículos de Recolección */
-.vehicle-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
-  background-color: #f9f9f9;
-}
-
-.vehicle-card h4 {
-  margin-top: 0;
+.section h2, .section h3 {
   color: var(--dark);
+  margin-top: 0;
+  border-bottom: 2px solid var(--secondary);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
 }
 
-.vehicle-property {
-  margin: 5px 0;
+/* Diseño de cuadrícula para el dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
-.vehicle-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
+/* Tarjetas y Listas */
+.request-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.request-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.detail-item {
+    flex: 1 1 45%;
+    font-size: 0.9em;
+}
+
+.detail-label {
+    font-weight: bold;
+    color: var(--dark);
+    display: block;
+}
+
+.request-actions button {
+    width: auto;
+    margin-right: 10px;
+    padding: 8px 15px;
 }
 
 .status-badge {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: white;
 }
 
-.status-pending {
-  background-color: #fff3cd;
-  color: #856404;
+.status-pendiente { background-color: #FFC107; }
+.status-aceptada { background-color: #4CAF50; }
+.status-rechazada { background-color: #F44336; }
+.status-completada, .status-completed { background-color: #03A9F4; }
+.status-active { background-color: #4CAF50; }
+.status-inactive { background-color: #FF9800; }
+
+
+/* Listas de vehículos y usuarios */
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #eee;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    background-color: #fafafa;
 }
 
-.status-active {
-  background-color: #d4edda;
-  color: #155724;
+.item-info {
+    flex-grow: 1;
 }
 
-.status-inactive {
-  background-color: #f8d7da;
-  color: #721c24;
+.item-actions button {
+    width: auto;
+    padding: 5px 10px;
+    margin-left: 5px;
+    font-size: 0.9em;
 }
 
-/* Estilos para el modal de vehículos - Para que los Botones de Editar y Crear Vehículos tengan sus funcionalidades*/
-.modal {
-  /*display: none;*/
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
+/* Gráficos */
+.chart-container {
+    height: 300px; 
+    margin-bottom: 20px;
 }
 
-.modal-content {
-  background-color: #fefefe;
-  margin: 15% auto;
-  padding: 20px;
-  border: 1px solid #888;
-  width: 80%;
-  max-width: 500px;
-  border-radius: 8px;
+/* Botón de Logout */
+.logout-btn {
+  background-color: #f44336; 
+  width: auto;
+  padding: 10px 15px;
+  margin-top: 0;
+}
+.logout-btn:hover {
+  background-color: #d32f2f;
 }
 
-.close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.close:hover {
-  color: black;
-}
-
-
+/* Media Queries para responsividad */
 @media (max-width: 768px) {
   .container {
     margin: 10px;
     border-radius: 0;
   }
   
-  .filter-section {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .logout-btn.desktop-hidden {
+    display: inline-block; /* Muestra el botón de logout en el header para móviles */
+  }
+  
+  .logout-btn:not(.desktop-hidden) {
+    display: none !important; /* Oculta el botón grande de abajo en móviles */
+  }
+
+  .request-details {
     flex-direction: column;
-  }
-  
-  .filter-section button {
-    width: 100%;
-  }
-  
-  .modal-content {
-    width: 90%;
-    margin: 20% auto;
   }
 }
 
-.request-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    background-color: #f9f9f9;
-  }
-  
-  .request-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  
-  .request-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  
-  .request-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  
-  .detail-item {
-    margin-bottom: 5px;
-  }
-  
-  .detail-label {
-    font-weight: bold;
-    color: var(--dark);
-  }
-
-  /* Estilos para Swal2 inputs dentro del modal */
-  .swal2-input {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-    box-sizing: border-box;
-  }
-  .swal2-select {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0;
-    box-sizing: border-box;
-  }
+@media (min-width: 769px) {
+    .logout-btn.desktop-hidden {
+        display: none !important; /* Oculta el botón de logout del header en desktop */
+    }
+}
