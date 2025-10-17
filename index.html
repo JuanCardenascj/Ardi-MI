@@ -39,7 +39,6 @@
     </div>
   </div>
 
-
   <div class="container hidden" id="password-page">
     <div class="header">
       <img src="images/logo.png" alt="logo" class="logo">
@@ -53,7 +52,6 @@
       <button class="logout-btn" onclick="showLoginForm()">Volver al Login</button>
     </div>
   </div>
-
 
   <div class="container hidden" id="register-page">
     <div class="header">
@@ -84,151 +82,106 @@
     </div>
   </div>
 
-
   <div class="container hidden" id="dashboard-container">
-    <div class="header">
-      <img src="images/logo.png" alt="logo" class="logo">
-      <span>ARDI-MI ♻️ - <span id="user-role-display"></span></span>
+    
+    <div class="header" style="justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="images/logo.png" alt="logo" class="logo">
+        <span>ARDI-MI ♻️ - <span id="user-role-display"></span></span>
+      </div>
+      <button class="logout-btn desktop-hidden" onclick="logout()">Cerrar Sesión</button>
     </div>
+    
     <h1 id="welcome-message"></h1>
 
-
-    <div id="user-section" class="section hidden">
-      <h2><i class="fas fa-trash-alt"></i> Solicitar Recolección</h2>
-      <input type="date" id="collectionDate" required />
-      <select id="wasteType" required>
-        <option value="">Seleccione tipo de residuo</option>
-        <option value="organico">Orgánico 🍂</option>
-        <option value="inorganico">Inorgánico 🏗️</option>
-        <option value="reciclable">Reciclable ♻️</option>
-        <option value="peligroso">Peligroso ☣️</option>
-      </select>
-      <input type="number" id="wasteWeight" placeholder="Peso (kg)" min="0.1" step="0.1" required />
-      <button onclick="createCollectionRequest()">Solicitar Recolección</button>
-
-      
-      <div class="section">
-        <h3><i class="fas fa-coins"></i> Puntos Acumulados</h3>
-        <p>Total de puntos: <strong id="total-points">0</strong></p>
-        <div class="chart-container">
-          <canvas id="pointsChart"></canvas>
+    <div id="user-section" class="role-section hidden">
+        <h2><i class="fas fa-trash-alt"></i> Solicitar Recolección</h2>
+        <div class="section">
+            <input type="date" id="collectionDate" required />
+            <select id="wasteType" required>
+                <option value="">Seleccione tipo de residuo</option>
+                <option value="organico">Orgánico 🍂</option>
+                <option value="inorganico">Inorgánico 🏗️</option>
+                <option value="reciclable">Reciclable ♻️</option>
+                <option value="peligroso">Peligroso ☣️</option>
+            </select>
+            <input type="number" id="wasteWeight" placeholder="Peso estimado (kg)" required min="0.1" step="0.1" />
+            <button onclick="createCollectionRequest()">Confirmar Solicitud</button>
         </div>
-      </div>
+
+        <div class="dashboard-grid">
+            <div class="section">
+                <h3><i class="fas fa-star"></i> Mis Puntos</h3>
+                <p>Puntos acumulados: <span id="total-points" style="font-weight: bold; color: var(--primary);">0</span></p>
+            </div>
+            <div class="section">
+                <h3><i class="fas fa-chart-bar"></i> Historial de Puntos</h3>
+                <div class="chart-container">
+                    <canvas id="pointsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3><i class="fas fa-history"></i> Historial de Solicitudes</h3>
+            <ul id="user-requests-list">
+                </ul>
+        </div>
     </div>
 
 
-    <div id="company-section" class="section hidden">
-      <h2><i class="fas fa-truck"></i> Solicitudes Pendientes</h2>
-      <div id="pending-requests-container"></div>
+    <div id="company-section" class="role-section hidden">
+        
+        <div class="dashboard-grid">
+            
+            <div class="section">
+                <h3><i class="fas fa-chart-pie"></i> Estadísticas de Gestión</h3>
+                <div class="chart-container">
+                    <canvas id="companyStatsChart"></canvas>
+                </div>
+            </div>
 
-      
-      <h3><i class="fas fa-weight-hanging"></i> Registrar Recolección</h3>
-      <div class="filter-section">
-        <select id="request-select">
-          <option value="">Seleccione una solicitud</option>
-        </select>
-        <input type="number" id="collected-weight" placeholder="Peso recolectado (kg)" min="0.1" step="0.1">
-        <button onclick="registerCollection()">Registrar</button>
-      </div>
-
-      
-      <div class="section">
-        <h3><i class="fas fa-chart-line"></i> Estadísticas</h3>
-        <div class="chart-container">
-          <canvas id="companyStatsChart"></canvas>
+            <div class="section">
+                <h3><i class="fas fa-check-circle"></i> Registrar Recolección</h3>
+                <select id="request-select">
+                    <option value="">Seleccione una solicitud aceptada</option>
+                </select>
+                <input type="number" id="collected-weight" placeholder="Peso real recolectado (kg)" min="0.1" step="0.1" required />
+                <button onclick="registerCollection()">Completar Recolección</button>
+            </div>
+            
         </div>
 
-       <!--<div class="section">
-          <h3><i class="fas fa-chart-bar"></i> Estadísticas de tus Solicitudes</h3>
-          <div class="chart-container">
-              <canvas id="userStatsChart"></canvas>
+        <div class="section">
+            <h3><i class="fas fa-list"></i> Solicitudes Pendientes</h3>
+            <div id="pending-requests-container">
+                <p>Cargando solicitudes...</p>
+            </div>
         </div>
-      </div>!-->
-
-      </div>
-      
-      <div class="section">
-        <h3><i class="fas fa-truck-moving"></i> Gestión de Vehículos Recolectores</h3>
-        <button onclick="showAddVehicleForm()"><i class="fas fa-plus"></i> Añadir Vehículo</button>
-        <div id="vehicles-list"></div>
-      </div>
-
-      
-      <div class="section">
-        <h3><i class="fas fa-users-cog"></i> Gestión de Usuarios</h3>
-        <div class="filter-section">
-          <input type="text" id="user-search" placeholder="Buscar usuario...">
-          <button onclick="searchUsers()">Buscar</button>
+        
+        <div class="section">
+            <h3><i class="fas fa-car"></i> Gestión de Vehículos</h3>
+            <ul id="vehicles-list">
+                </ul>
+            <button onclick="showAddVehicleModal()"><i class="fas fa-plus"></i> Añadir Vehículo</button>
         </div>
-        <ul id="managed-users-list"></ul>
-      </div>
+        
+        <div class="section">
+            <h3><i class="fas fa-users"></i> Gestión de Usuarios</h3>
+            <button onclick="showAddUserModal()" style="margin-bottom: 15px;"><i class="fas fa-user-plus"></i> Añadir Usuario</button>
+            
+            <div class="filter-section" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="user-search-input" placeholder="Buscar por nombre o correo" style="flex-grow: 1; margin: 0;">
+                <button onclick="searchUsers(false)" style="width: auto; margin: 0;"><i class="fas fa-search"></i> Buscar</button>
+            </div>
+            
+            <ul id="managed-users-list">
+                </ul>
+        </div>
     </div>
-
     
-    <div id="vehicle-modal" class="modal hidden">
-      <div class="modal-content">
-        <span class="close" onclick="closeVehicleModal()">&times;</span>
-        <h3 id="vehicle-modal-title">Añadir Nuevo Vehículo</h3>
-        <input type="text" id="vehicle-plate" placeholder="Placa" required>
-        <input type="text" id="vehicle-brand" placeholder="Marca" required>
-        <input type="text" id="vehicle-model" placeholder="Modelo" required>
-        <input type="number" id="vehicle-capacity" placeholder="Capacidad (kg)" min="100" required>
-        <select id="vehicle-type">
-          <option value="compacto">Compacto</option>
-          <option value="mediano">Mediano</option>
-          <option value="grande">Grande</option>
-          <option value="especial">Especial (peligrosos)</option>
-        </select>
-        <button onclick="saveVehicle()">Guardar Vehículo</button>
-      </div>
-    </div>
+    <button class="logout-btn" onclick="logout()" style="width: 100%; margin-top: 20px;">Cerrar Sesión</button>
 
-
-    <div id="admin-section" class="section hidden">
-      <h2><i class="fas fa-tachometer-alt"></i> Panel de Administración</h2>
-      
-      <div class="filter-section">
-        <input type="date" id="admin-start-date">
-        <input type="date" id="admin-end-date">
-        <select id="admin-filter-type">
-          <option value="all">Todos los tipos</option>
-          <option value="organico">Orgánico</option>
-          <option value="inorganico">Inorgánico</option>
-          <option value="reciclable">Reciclable</option>
-          <option value="peligroso">Peligroso</option>
-        </select>
-        <input type="number" id="admin-min-weight" placeholder="Peso mínimo (kg)" min="0" step="0.1">
-        <input type="number" id="admin-max-weight" placeholder="Peso máximo (kg)" min="0" step="0.1">
-        <button onclick="filterAdminData()">Filtrar</button>
-      </div>
-      
-      <div class="chart-container">
-        <canvas id="adminRequestsChart"></canvas>
-      </div>
-      
-      <div class="section">
-        <h3><i class="fas fa-users"></i> Usuarios Registrados</h3>
-        <button onclick="addUserManually()" style="margin-bottom: 15px;"><i class="fas fa-plus"></i> Agregar Usuario</button>
-        <ul id="users-list"></ul>
-      </div>
-      
-      <div class="section">
-        <h3><i class="fas fa-building"></i> Empresas Recolectoras</h3>
-        <button onclick="addCompanyManually()" style="margin-bottom: 15px;"><i class="fas fa-plus"></i> Agregar Empresa</button>
-        <ul id="companies-list"></ul>
-      </div>
-      <div class="section">
-        <h3><i class="fas fa-list"></i> Todas las Solicitudes</h3>
-        <ul id="all-requests-list"></ul>
-      </div>
-      
-      <div class="filter-section">
-        <button onclick="exportUsersToPDF()">Exportar Usuarios (PDF)</button>
-        <button onclick="exportRequestsToExcel()">Exportar Solicitudes (Excel)</button>
-      </div>
-    </div>
-
-    <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
   </div>
 
   <script src="script.js"></script>

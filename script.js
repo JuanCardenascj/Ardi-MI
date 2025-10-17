@@ -1,4 +1,10 @@
-// --- DATOS DE SIMULACIÓN ---
+// ====================================================================
+// ARDI-MI ♻️ - GESTIÓN DE RESIDUOS (script.js)
+// ====================================================================
+/**
+ * Array de solicitudes de recolección de muestra.
+ * Se usan temporalmente en la sección de compañía para simular peticiones pendientes.
+ */
 const sampleRequests = [
   {
     id: 1,
@@ -8,7 +14,8 @@ const sampleRequests = [
     weight: 5.2,
     address: "Calle Principal 123",
     phone: "555-1234",
-    status: "pendiente"
+    status: "pendiente",
+    companyId: 3 // Asignado a la compañía demo
   },
   {
     id: 2,
@@ -18,7 +25,8 @@ const sampleRequests = [
     weight: 3.8,
     address: "Avenida Central 456",
     phone: "555-5678",
-    status: "pendiente"
+    status: "pendiente",
+    companyId: 3
   },
   {
     id: 3,
@@ -28,22 +36,33 @@ const sampleRequests = [
     weight: 3.8,
     address: "Avenida Oriente 456",
     phone: "555-5678",
-    status: "pendiente"
+    status: "pendiente",
+    companyId: 3
   }
 ];  
 
+/**
+ * Array de usuarios y compañías.
+ */
 const users = [
+  // Usuarios Normales (user)
   { id: 1, name: "Usuario1 Demo", email: "user1@example.com", password: "123456", role: "user", phone: "1234567890", points: 150, whatsapp: true, status: 'active' },
   { id: 2, name: "Usuario2 Demo", email: "user2@example.com", password: "123456", role: "user", phone: "1111111111", points: 75, whatsapp: false, status: 'active' },
-  { id: 3, name: "Empresa Demo", email: "company@example.com", password: "123456", role: "company", phone: "0987654321", whatsapp: true, status: 'active' },
-  { id: 4, name: "Admin Demo", email: "admin@example.com", password: "123456", role: "admin", phone: "5555555555", whatsapp: true, status: 'active' },
+  // Compañía Recolectora (company)
+  { id: 3, name: "ARDI-MI Recolección", email: "company@example.com", password: "123456", role: "company", phone: "0987654321", whatsapp: true, status: 'active' }
 ];
 
+/**
+ * Historial de solicitudes de recolección creadas por los usuarios.
+ */
 let collectionRequests = [
-  { id: 1, userId: 1, date: "2025-05-15", type: "reciclable", weight: 5, points: 5, status: "completed", companyId: 2, vehicleId: 1 },
+  { id: 1, userId: 1, date: "2025-05-15", type: "reciclable", weight: 5, points: 5, status: "completed", companyId: 3, vehicleId: 1 }, 
   { id: 2, userId: 1, date: "2025-05-20", type: "organico", weight: 3, points: 3, status: "pending" }
 ];
 
+/**
+ * Lista de vehículos de la compañía (companyId = 3).
+ */
 let vehicles = [
   { id: 1, companyId: 3, plate: "ABC123", brand: "Toyota", model: "Hilux", capacity: 1500, type: "mediano", status: "active" },
   { id: 2, companyId: 3, plate: "DEF456", brand: "Mercedes", model: "Atego", capacity: 5000, type: "grande", status: "active" },
@@ -54,27 +73,21 @@ let currentUser = null;
 let notificationInterval = null;
 let currentEditingVehicleId = null;
 
-// --- PATRONES DE DISEÑO ---
 
-// Implementación del patrón Factory Method para creación de usuarios
+// --------------------------------------------------------------------
+// 2. PATRONES DE DISEÑO 
+// --------------------------------------------------------------------
+
+// Factory Method para creación de usuarios (se usa para registrar nuevos usuarios y compañías)
 class UserFactory {
-  createUser(data) {
-    throw new Error("Método abstracto - debe ser implementado por subclases");
-  }
+  createUser(data) { throw new Error("Método abstracto - debe ser implementado por subclases"); }
 }
 
 class RegularUserFactory extends UserFactory {
   createUser(data) {
     return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      role: 'user',
-      phone: data.phone,
-      points: 0,
-      whatsapp: data.whatsapp || false,
-      status: 'active'
+      id: data.id, name: data.name, email: data.email, password: data.password, 
+      role: 'user', phone: data.phone, points: 0, whatsapp: data.whatsapp || false, status: 'active'
     };
   }
 }
@@ -82,100 +95,86 @@ class RegularUserFactory extends UserFactory {
 class CompanyUserFactory extends UserFactory {
   createUser(data) {
     return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      role: 'company',
-      phone: data.phone,
-      whatsapp: data.whatsapp || false,
-      status: 'active'
+      id: data.id, name: data.name, email: data.email, password: data.password, 
+      role: 'company', phone: data.phone, whatsapp: data.whatsapp || false, status: 'active',
+      companyId: data.id 
     };
   }
 }
 
-// Implementación del patrón Observer para notificaciones
+// Observer para notificaciones (usado para simular envíos por WhatsApp)
 class NotificationSystem {
-  constructor() {
-    this.observers = [];
-  }
-  
-  subscribe(observer) {
-    this.observers.push(observer);
-  }
-  
-  unsubscribe(observer) {
-    this.observers = this.observers.filter(obs => obs !== observer);
-  }
-  
-  notify(data) {
-    this.observers.forEach(observer => observer.update(data));
-  }
+  constructor() { this.observers = []; }
+  subscribe(observer) { this.observers.push(observer); }
+  unsubscribe(observer) { this.observers = this.observers.filter(obs => obs !== observer); }
+  notify(data) { this.observers.forEach(observer => observer.update(data)); }
 }
 
 class WhatsAppNotifier {
   update(data) {
     console.log(`Enviando notificación por WhatsApp a ${data.phone}: ${data.message}`);
     if (data.userId && users.some(u => u.id === data.userId && u.whatsapp)) {
-      Swal.fire({
-        title: "Notificación por WhatsApp",
-        text: data.message,
-        icon: "info"
-      });
+      Swal.fire({ title: "Notificación por WhatsApp", text: data.message, icon: "info" });
     }
   }
 }
 
-// Crear instancias de los patrones
 const notificationSystem = new NotificationSystem();
 const whatsappNotifier = new WhatsAppNotifier();
 notificationSystem.subscribe(whatsappNotifier);
 
 
-// --- FUNCIONES DE CÁLCULO (Strategy Pattern) y UTILIDAD ---
+// --------------------------------------------------------------------
+// 3. FUNCIONES DE CÁLCULO Y UTILIDAD
+// --------------------------------------------------------------------
 
-// Función para calcular puntos (Strategy pattern)
+// Calcula los puntos del usuario según el tipo y peso de residuo 
 function calculatePoints(type, weight) {
   const strategies = {
-    organico: w => Math.floor(w * 0.8),    // 0.8 puntos/kg
-    inorganico: w => Math.floor(w * 0.5),  // 0.5 puntos/kg
-    reciclable: w => Math.floor(w * 1),    // 1 punto/kg
-    peligroso: w => Math.floor(w * 2)      // 2 puntos/kg
+    organico: w => Math.floor(w * 0.8),
+    inorganico: w => Math.floor(w * 0.5),
+    reciclable: w => Math.floor(w * 1),
+    peligroso: w => Math.floor(w * 2)
   };
-  
   return strategies[type] ? strategies[type](weight) : 0;
 }
 
-// Funciones de ayuda
+// Obtiene el nombre completo del tipo de residuo
 function getWasteTypeName(type) {
   const names = {
-    organico: 'Orgánico 🍂',
-    inorganico: 'Inorgánico 🏗️',
-    reciclable: 'Reciclable ♻️',
-    peligroso: 'Peligroso ☣️'
+    organico: 'Orgánico 🍂', inorganico: 'Inorgánico 🏗️', 
+    reciclable: 'Reciclable ♻️', peligroso: 'Peligroso ☣️'
   };
   return names[type] || type;
 }
 
+// Obtiene el nombre completo del estado
 function getStatusName(status) {
   const names = {
-    pending: 'Pendiente',
-    accepted: 'Aceptada',
-    completed: 'Completada',
-    rejected: 'Rechazada',
-    active: 'Activo',
-    inactive: 'Inactivo',
-    // Estados de sampleRequests:
-    pendiente: 'Pendiente',
-    aceptada: 'Aceptada',
-    rechazada: 'Rechazada',
-    completada: 'Completada'
+    pending: 'Pendiente', accepted: 'Aceptada', completed: 'Completada', rejected: 'Rechazada', 
+    active: 'Activo', inactive: 'Inactivo',
+    pendiente: 'Pendiente', aceptada: 'Aceptada', rechazada: 'Rechazada', completada: 'Completada'
   };
   return names[status] || status;
 }
 
-// --- FUNCIONES DE VISTAS (SPA) ---
+// Revisa si hay notificaciones pendientes para el usuario actual (usado en setInterval)
+function checkForNotifications() {
+  const pendingRequests = collectionRequests.filter(r => r.userId === currentUser.id && r.status === 'accepted' && !r.notified);
+  
+  if (pendingRequests.length > 0) {
+    const message = `Tu solicitud #${pendingRequests[0].id} ha sido ACEPTADA!`;
+    notificationSystem.notify({ userId: currentUser.id, phone: currentUser.phone, message: message });
+    pendingRequests[0].notified = true;
+  }
+}
 
+
+// --------------------------------------------------------------------
+// 4. FUNCIONES DE VISTAS (SPA)
+// --------------------------------------------------------------------
+
+// Muestra la pantalla de inicio de sesión
 function showLoginForm() {
   document.getElementById('login-page').classList.remove('hidden');
   document.getElementById('password-page').classList.add('hidden');
@@ -183,33 +182,41 @@ function showLoginForm() {
   document.getElementById('dashboard-container').classList.add('hidden');
 }
 
+// Muestra la pantalla de recuperación de contraseña
 function showPasswordRecovery() {
   document.getElementById('login-page').classList.add('hidden');
   document.getElementById('password-page').classList.remove('hidden');
 }
 
+// Muestra la pantalla de registro
 function showRegisterForm() {
   document.getElementById('login-page').classList.add('hidden');
   document.getElementById('register-page').classList.remove('hidden');
 }
 
+// Muestra el Dashboard y actualiza su contenido
 function showDashboard() {
   document.getElementById('login-page').classList.add('hidden');
   document.getElementById('password-page').classList.add('hidden');
   document.getElementById('register-page').classList.add('hidden');
   document.getElementById('dashboard-container').classList.remove('hidden');
-  
-  updateDashboard();
+
+   updateDashboard();
 }
 
+// Cierra la sesión del usuario actual
 function logout() {
   currentUser = null;
   clearInterval(notificationInterval);
   showLoginForm();
 }
 
-// --- FUNCIONES DE AUTENTICACIÓN ---
 
+// --------------------------------------------------------------------
+// 5. AUTENTICACIÓN Y REGISTRO
+// --------------------------------------------------------------------
+
+// Proceso de inicio de sesión
 function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
@@ -248,6 +255,7 @@ function login() {
   }
 }
 
+// Proceso de registro de nuevo usuario o compañía
 function register() {
   const name = document.getElementById('registerName').value;
   const email = document.getElementById('registerEmail').value;
@@ -273,15 +281,14 @@ function register() {
   }
   
   const factory = role === 'company' ? new CompanyUserFactory() : new RegularUserFactory();
-  
+  const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+
   const newUser = factory.createUser({
-    id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-    name,
-    email,
-    password,
-    phone,
-    whatsapp: whatsappNotification,
+    id: newId, name, email, password, phone, whatsapp: whatsappNotification,
   });
+
+  // Si es compañía, asigna el companyId
+  if (role === 'company') { newUser.companyId = newId; }
   
   users.push(newUser);
   
@@ -294,18 +301,12 @@ function register() {
   });
 }
 
+// Envío de enlace de recuperación de contraseña (simulado)
 function sendPasswordRecovery() {
   const email = document.getElementById('recoveryEmail').value;
   
-  if (!email) {
-    Swal.fire("Error", "Por favor ingrese su correo electrónico", "error");
-    return;
-  }
-  
-  if (!users.some(u => u.email === email)) {
-    Swal.fire("Error", "Este correo no está registrado", "error");
-    return;
-  }
+  if (!email) { Swal.fire("Error", "Por favor ingrese su correo electrónico", "error"); return; }
+  if (!users.some(u => u.email === email)) { Swal.fire("Error", "Este correo no está registrado", "error"); return; }
   
   Swal.fire({
     title: "Enlace enviado",
@@ -316,98 +317,63 @@ function sendPasswordRecovery() {
   });
 }
 
-// --- CONTROL DEL DASHBOARD ---
 
+// --------------------------------------------------------------------
+// 6. CONTROL DEL DASHBOARD (Función principal de carga de roles)
+// --------------------------------------------------------------------
+
+/**
+ * Determina qué sección del dashboard mostrar, actualiza mensajes y roles.
+ */
 function updateDashboard() {
   if (!currentUser) return;
   
-  document.getElementById('welcome-message').textContent = `Bienvenido, ${currentUser.name}`;
-  document.getElementById('user-role-display').textContent = 
-    currentUser.role === 'user' ? 'Usuario' : 
-    currentUser.role === 'company' ? 'Empresa Recolectora' : 'Administrador';
-  
+  // Ocultar todas las secciones de rol
   document.getElementById('user-section').classList.add('hidden');
   document.getElementById('company-section').classList.add('hidden');
-  document.getElementById('admin-section').classList.add('hidden');
+
+  // Actualización del mensaje de bienvenida 
+  document.getElementById('welcome-message').textContent = `Bienvenido, ${currentUser.name}!`;
   
+  // Actualización del rol en el encabezado
+  document.getElementById('user-role-display').textContent = 
+    currentUser.role === 'user' ? 'Usuario' : 
+    currentUser.role === 'company' ? 'Empresa Recolectora' : 'Error de Rol';
+
+  // Mostrar la sección correspondiente
   if (currentUser.role === 'user') {
     document.getElementById('user-section').classList.remove('hidden');
     updateUserSection();
   } else if (currentUser.role === 'company') {
     document.getElementById('company-section').classList.remove('hidden');
     updateCompanySection();
-  } else if (currentUser.role === 'admin') {
-    document.getElementById('admin-section').classList.remove('hidden');
-    updateAdminSection();
-  }
-  
+  } 
+  // La lógica de 'admin' es ELIMINADA.
+
+  // Iniciar/Detener el intervalo de notificaciones
   clearInterval(notificationInterval);
   if (currentUser.whatsapp) {
-    notificationInterval = setInterval(() => {
-      checkForNotifications();
-    }, 30000);
+    notificationInterval = setInterval(() => { checkForNotifications(); }, 30000);
   }
 }
 
-// --- SECCIÓN USUARIO ---
 
-/* //Gráficos del Usuario!
-function renderUserStatsChart() {
-    //const userRequests = collectionRequests.filter(r => r.userId === currentUser.id);
-    
-    // Contar tipos de residuos
-    const counts = userRequests.reduce((acc, r) => {
-        acc[r.type] = (acc[r.type] || 0) + 1;
-        return acc;
-    }, {});
-    
-    const types = ['organico', 'inorganico', 'reciclable', 'peligroso'];
-    const labels = types.map(getWasteTypeName);
-    const data = types.map(type => counts[type] || 0);
+// --------------------------------------------------------------------
+// 7. SECCIÓN USUARIO (Funcionalidad de Solicitud y Puntos)
+// --------------------------------------------------------------------
 
-    const ctx = document.getElementById('userStatsChart').getContext('2d');
-    
-    // Destruye el gráfico anterior si existe
-    if (window.userStatsChart) {
-        window.userStatsChart.destroy();
-    }
-    
-    // Crea el nuevo gráfico de pastel/anillo (Doughnut)
-    window.userStatsChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Cantidad de Solicitudes por Tipo',
-                data: data,
-                backgroundColor: ['#4CAF50', '#795548', '#03A9F4', '#FF5722']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Distribución de tus Solicitudes'
-                }
-            }
-        }
-    });
-}*/
-
+/**
+ * Actualiza los puntos del usuario y el historial de solicitudes, y dibuja el gráfico.
+ */
 function updateUserSection() {
   document.getElementById('total-points').textContent = currentUser.points;
   
   const userRequests = collectionRequests.filter(r => r.userId === currentUser.id);
+  
+  // Lógica del Gráfico de Puntos
   const ctx = document.getElementById('pointsChart').getContext('2d');
   
-  if (window.pointsChart) {
-    window.pointsChart.destroy();
-  }
+  if (window.pointsChart) { window.pointsChart.destroy(); }
   
   window.pointsChart = new Chart(ctx, {
     type: 'bar',
@@ -419,69 +385,132 @@ function updateUserSection() {
         backgroundColor: '#2e7d32'
       }]
     },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
   });
 
-  //renderUserStatsChart();
+  renderUserRequestsList(userRequests);
 }
 
+/**
+ * Renderiza la lista de solicitudes del usuario actual.
+ */
+function renderUserRequestsList(requests) {
+    const list = document.getElementById('user-requests-list');
+    list.innerHTML = '';
+
+    if (requests.length === 0) {
+        list.innerHTML = '<p>No has realizado ninguna solicitud aún.</p>';
+        return;
+    }
+
+    requests.forEach(request => {
+        const li = document.createElement('li');
+        li.className = 'list-item';
+        li.innerHTML = `
+            <div class="item-info">
+                <strong>Solicitud #${request.id}</strong> - ${getWasteTypeName(request.type)} (${request.weight} kg)
+                <br>
+                <span>Fecha: ${request.date} | Puntos: ${request.points}</span>
+            </div>
+            <span class="status-badge status-${request.status}">${getStatusName(request.status)}</span>
+        `;
+        list.appendChild(li);
+    });
+}
+
+
+// Crea una nueva solicitud de recolección
 function createCollectionRequest() {
   const date = document.getElementById('collectionDate').value;
   const type = document.getElementById('wasteType').value;
   const weight = parseFloat(document.getElementById('wasteWeight').value);
 
   if (!date || !type || !weight || weight <= 0) {
-    Swal.fire("Error", "Por favor complete todos los campos correctamente", "error");
-    return;
+    Swal.fire("Error", "Por favor complete todos los campos correctamente", "error"); return;
   }
 
   const points = calculatePoints(type, weight);
 
   const newRequest = {
-    id: collectionRequests.length + 1,
-    userId: currentUser.id,
-    date,
-    type,
-    weight,
-    points,
-    status: 'pending',
-    notified: false
+    id: collectionRequests.length > 0 ? Math.max(...collectionRequests.map(r => r.id)) + 1 : 1,
+    userId: currentUser.id, date, type, weight, points, status: 'pending', notified: false
   };
 
   collectionRequests.push(newRequest);
-
   currentUser.points += points;
   
   Swal.fire({
     title: "¡Solicitud creada!",
     text: `Se ha creado tu solicitud para el ${date}. Puntos estimados: ${points}. Puntos Totales: ${currentUser.points}`,
     icon: "success"
-  }).then(() => {
-    updateUserSection(); //Refresca la sección para mostrar los nuevos puntos!
-  });
+  }).then(() => { updateUserSection(); });
 }
 
 
-// --- SECCIÓN EMPRESA RECOLECTORA ---
+// --------------------------------------------------------------------
+// 8. SECCIÓN EMPRESA (Funcionalidad de Gestión)
+// --------------------------------------------------------------------
 
+/**
+ * Actualiza la sección de la compañía (vehículos, usuarios, peticiones) y dibuja el gráfico.
+ */
+function updateCompanySection() {
+    // 1. Cargar peticiones pendientes, vehículos y usuarios gestionados
+    loadPendingRequests();
+    renderVehiclesList(); 
+    searchUsers(true); 
+
+    // 2. LÓGICA DEL GRÁFICO DE ESTADÍSTICAS (CompanyStatsChart)
+    
+    // Combina collectionRequests y sampleRequests para un panorama completo
+    const allRequests = [
+        ...collectionRequests.filter(r => r.companyId === currentUser.id),
+        ...sampleRequests.map(r => ({ ...r, status: r.status === 'pendiente' ? 'pending' : r.status }))
+    ];
+
+    // Contar el estado de las solicitudes y normalizar el estado
+    const counts = allRequests.reduce((acc, r) => {
+        let statusKey = r.status === 'pendiente' ? 'pending' : r.status === 'aceptada' ? 'accepted' : r.status === 'completada' ? 'completed' : r.status;
+        acc[statusKey] = (acc[statusKey] || 0) + 1;
+        return acc;
+    }, {});
+
+    const labels = ['Pendiente', 'Aceptada', 'Rechazada', 'Completada'];
+    const data = [
+        counts['pending'] || 0, counts['accepted'] || 0, counts['rejected'] || 0, counts['completed'] || 0
+    ];
+
+    const ctx = document.getElementById('companyStatsChart').getContext('2d');
+    
+    // Destruye el gráfico anterior si existe
+    if (window.companyChart) { window.companyChart.destroy(); }
+    
+    window.companyChart = new Chart(ctx, {
+      type: 'pie', // Gráfico de pastel o tortas
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: ['#FFC107', '#4CAF50', '#F44336', '#03A9F4']
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: 'Estado de Solicitudes Gestionadas' } }
+      }
+    });
+}
+
+/**
+ * Carga y muestra las solicitudes pendientes.
+ */
 function loadPendingRequests() {
   const container = document.getElementById('pending-requests-container');
   container.innerHTML = '';
   
-  // Usando sampleRequests para solicitudes pendientes (como en el original)
   const pendingRequests = sampleRequests.filter(req => req.status === 'pendiente');
   
-  if(pendingRequests.length === 0) {
-    container.innerHTML = '<p>No hay solicitudes pendientes de asignación en este momento.</p>';
-    return;
-  }
+  if(pendingRequests.length === 0) { container.innerHTML = '<p>No hay solicitudes pendientes de asignación en este momento.</p>'; return; }
   
   pendingRequests.forEach(request => {
     const requestCard = document.createElement('div');
@@ -493,876 +522,435 @@ function loadPendingRequests() {
         <span class="status-badge status-pendiente">Pendiente</span>
       </div>
       <div class="request-details">
-        <div class="detail-item">
-          <span class="detail-label">Fecha:</span>
-          <span>${request.date}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Tipo:</span>
-          <span>${getWasteTypeName(request.type)}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Peso:</span>
-          <span>${request.weight} kg</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Dirección:</span>
-          <span>${request.address}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Teléfono:</span>
-          <span>${request.phone}</span>
-        </div>
+        <div class="detail-item"><span class="detail-label">Fecha:</span><span>${request.date}</span></div>
+        <div class="detail-item"><span class="detail-label">Tipo:</span><span>${getWasteTypeName(request.type)}</span></div>
+        <div class="detail-item"><span class="detail-label">Peso:</span><span>${request.weight} kg</span></div>
+        <div class="detail-item"><span class="detail-label">Dirección:</span><span>${request.address}</span></div>
+        <div class="detail-item"><span class="detail-label">Teléfono:</span><span>${request.phone}</span></div>
       </div>
       <div class="request-actions">
         <button onclick="acceptRequestSample(${request.id})" style="background-color: var(--primary);">Aceptar</button>
         <button onclick="rejectRequestSample(${request.id})" style="background-color: #d32f2f;">Rechazar</button>
         <button onclick="viewRequestDetails(${request.id})">Detalles</button>
       </div>
-    `;
+    `; 
     
     container.appendChild(requestCard);
   });
-  
   updateRequestsSelect();
 }
 
+// Acepta una solicitud de muestra
 function acceptRequestSample(requestId) {
   const request = sampleRequests.find(req => req.id === requestId);
   if(request) {
     request.status = 'aceptada';
-    Swal.fire({
-      title: 'Solicitud Aceptada',
-      text: `Has aceptado la solicitud #${requestId} de ${request.user}. Procede a registrar la recolección.`,
-      icon: 'success'
-    });
-    loadPendingRequests();
+    
+    // Simulación de aceptar también en el array principal para el gráfico
+    const originalRequest = collectionRequests.find(r => r.userId === 1 && r.status === 'pending'); 
+    if (originalRequest) { originalRequest.status = 'accepted'; originalRequest.companyId = currentUser.id; originalRequest.vehicleId = vehicles[0].id; }
+
+    Swal.fire({ title: 'Solicitud Aceptada', text: `Has aceptado la solicitud #${requestId}.`, icon: 'success' });
+    updateCompanySection(); 
   }
 }
 
+// Rechaza una solicitud de muestra
 function rejectRequestSample(requestId) {
   Swal.fire({
-    title: '¿Rechazar solicitud?',
-    text: "¿Estás seguro de que deseas rechazar esta solicitud?",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Sí, rechazar',
-    cancelButtonText: 'Cancelar'
+    title: '¿Rechazar solicitud?', text: "¿Estás seguro de que deseas rechazar esta solicitud?", icon: 'warning',
+    showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Sí, rechazar', cancelButtonText: 'Cancelar'
   }).then((result) => {
     if (result.isConfirmed) {
       const request = sampleRequests.find(req => req.id === requestId);
       if(request) {
         request.status = 'rechazada';
+        const originalRequest = collectionRequests.find(r => r.userId === 1 && r.status === 'pending');
+        if (originalRequest) { originalRequest.status = 'rejected'; }
+        
         Swal.fire('Rechazada', `La solicitud #${requestId} ha sido rechazada.`, 'success');
-        loadPendingRequests();
+        updateCompanySection();
       }
     }
   });
 }
 
+// Muestra detalles de una solicitud de muestra
 function viewRequestDetails(requestId) {
   const request = sampleRequests.find(req => req.id === requestId);
   if(request) {
     Swal.fire({
       title: `Detalles de Solicitud #${requestId}`,
-      html: `
-        <div style="text-align: left;">
-          <p><strong>Usuario:</strong> ${request.user}</p>
-          <p><strong>Fecha:</strong> ${request.date}</p>
-          <p><strong>Tipo de residuo:</strong> ${getWasteTypeName(request.type)}</p>
-          <p><strong>Peso estimado:</strong> ${request.weight} kg</p>
-          <p><strong>Dirección:</strong> ${request.address}</p>
-          <p><strong>Teléfono:</strong> ${request.phone}</p>
-          <p><strong>Estado:</strong> ${getStatusName(request.status)}</p>
-        </div>
-      `,
+      html: `<div style="text-align: left;"><p><strong>Usuario:</strong> ${request.user}</p><p><strong>Fecha:</strong> ${request.date}</p><p><strong>Tipo de residuo:</strong> ${getWasteTypeName(request.type)}</p><p><strong>Peso estimado:</strong> ${request.weight} kg</p><p><strong>Dirección:</strong> ${request.address}</p><p><strong>Teléfono:</strong> ${request.phone}</p><p><strong>Estado:</strong> ${getStatusName(request.status)}</p></div>`,
       confirmButtonText: 'Cerrar'
     });
   }
 }
 
+/**
+ * Llena el <select> de registro de recolección con solicitudes ACEPTADAS.
+ */
 function updateRequestsSelect() {
   const select = document.getElementById('request-select');
   select.innerHTML = '<option value="">Seleccione una solicitud</option>';
   
-  const acceptedRequests = sampleRequests.filter(req => req.status === 'aceptada');
+  const acceptedRequests = [
+    ...sampleRequests.filter(req => req.status === 'aceptada'),
+    ...collectionRequests.filter(req => req.status === 'accepted' && req.companyId === currentUser.id)
+  ];
   
   acceptedRequests.forEach(request => {
     const option = document.createElement('option');
     option.value = request.id;
-    option.textContent = `Solicitud #${request.id} - ${request.user} (${request.weight}kg)`;
+    option.textContent = `Solicitud #${request.id} - ${request.user || users.find(u => u.id === request.userId)?.name} (${request.weight}kg)`;
     select.appendChild(option);
   });
 }
 
+/**
+ * Registra la recolección completada y actualiza el estado de la solicitud.
+ */
 function registerCollection() {
   const select = document.getElementById('request-select');
   const weightInput = document.getElementById('collected-weight');
   const requestId = parseInt(select.value);
   const collectedWeight = parseFloat(weightInput.value);
-  
-  if(!requestId) {
-    Swal.fire({ title: 'Error', text: 'Por favor selecciona una solicitud', icon: 'error' });
+
+  if(!requestId || isNaN(collectedWeight) || collectedWeight <= 0) {
+    Swal.fire({ title: 'Error', text: 'Por favor selecciona una solicitud e ingresa un peso válido', icon: 'error' });
     return;
   }
   
-  if(isNaN(collectedWeight) || collectedWeight <= 0) {
-    Swal.fire({ title: 'Error', text: 'Por favor ingresa un peso válido', icon: 'error' });
-    return;
-  }
-  
-  const request = sampleRequests.find(req => req.id === requestId);
+  let request = sampleRequests.find(req => req.id === requestId);
+  if (!request) { request = collectionRequests.find(req => req.id === requestId); }
 
   if (request) {
-    request.status = 'completada';
+    request.status = 'completed'; // Estandariza a 'completed'
     request.collectedWeight = collectedWeight;
     request.collectionDate = new Date().toISOString().split('T')[0];
     
-    Swal.fire({
-      title: 'Recolección Registrada',
-      html: `
-        <p>Has registrado la recolección para:</p>
-        <p><strong>Solicitud #${request.id}</strong></p>
-        <p><strong>Usuario:</strong> ${request.user}</p>
-        <p><strong>Peso recolectado:</strong> ${collectedWeight} kg</p>
-      `,
-      icon: 'success'
-    });
+    Swal.fire({ title: 'Recolección Registrada', html: `<p>Has registrado la recolección para:</p><p><strong>Solicitud #${request.id}</strong></p><p><strong>Peso recolectado:</strong> ${collectedWeight} kg</p>`, icon: 'success' });
     
-    loadPendingRequests();
-    updateRequestsSelect();
-    weightInput.value = '';
-
-  } else {
-     Swal.fire({ title: 'Error', text: 'Solicitud no encontrada', icon: 'error' });
-  }
-}
-
-function updateCompanySection() {
-  loadPendingRequests();
-  renderVehiclesList();
-  searchUsers(); 
-  
-  const ctx = document.getElementById('companyStatsChart').getContext('2d');
-  
-  if (window.companyChart) {
-    window.companyChart.destroy();
-  }
-
-  /*Usar la lista de SampleRequests y collectionRequests */
-  const completed = collectionRequests.filter(r => r.status === 'completed').length + sampleRequests.filter(r => r.status === 'completada').length;
-  const accepted = collectionRequests.filter(r => r.status === 'accepted').length + sampleRequests.filter(r => r.status === 'aceptada').length;
-  const rejected = collectionRequests.filter(r => r.status === 'rejected').length + sampleRequests.filter(r => r.status === 'rechazada').length;
-
-  window.companyChart = new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: ['Completadas', 'Aceptadas', 'Rechazadas'],
-      datasets: [{
-        data: [completed, accepted, rejected
-          /*collectionRequests.filter(r => currentUser && r.companyId === currentUser.id && r.status === 'completed').length,
-          collectionRequests.filter(r => currentUser && r.companyId === currentUser.id && r.status === 'accepted').length,
-          collectionRequests.filter(r => currentUser && r.companyId === currentUser.id && r.status === 'rejected').length*/
-        ],
-        backgroundColor: ['#2e7d32', '#ffc107', '#f44336']
-      }]
-    }
-  });
-}
-
-// --- GESTIÓN DE VEHÍCULOS (Empresa) ---
-
-function showAddVehicleForm(vehicleId = null) {
-  currentEditingVehicleId = vehicleId;
-  const modal = document.getElementById('vehicle-modal');
-  const title = document.getElementById('vehicle-modal-title');
-  
-  if (vehicleId) {
-    title.textContent = "Editar Vehículo";
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (vehicle) {
-      document.getElementById('vehicle-plate').value = vehicle.plate;
-      document.getElementById('vehicle-brand').value = vehicle.brand;
-      document.getElementById('vehicle-model').value = vehicle.model;
-      document.getElementById('vehicle-capacity').value = vehicle.capacity;
-      document.getElementById('vehicle-type').value = vehicle.type;
-    }
-  } else {
-    title.textContent = "Añadir Nuevo Vehículo";
-    ['plate', 'brand', 'model', 'capacity'].forEach(field => {
-      document.getElementById(`vehicle-${field}`).value = '';
-    });
-    document.getElementById('vehicle-type').value = 'compacto';
-  }
-  
-  modal.classList.remove('hidden');
-}
-
-function closeVehicleModal() {
-  document.getElementById('vehicle-modal').classList.add('hidden');
-  currentEditingVehicleId = null;
-}
-
-function saveVehicle() {
-  const plate = document.getElementById('vehicle-plate').value;
-  const brand = document.getElementById('vehicle-brand').value;
-  const model = document.getElementById('vehicle-model').value;
-  const capacity = parseInt(document.getElementById('vehicle-capacity').value);
-  const type = document.getElementById('vehicle-type').value;
-  
-  if (!plate || !brand || !model || isNaN(capacity) || capacity <= 0) {
-    Swal.fire("Error", "Por favor complete todos los campos correctamente", "error");
-    return;
-  }
-  
-  const companyId = currentUser ? currentUser.id : 3;
-  
-  if (currentEditingVehicleId) {
-    //Lógica para Editar
-    const index = vehicles.findIndex(v => v.id === currentEditingVehicleId);
-    if (index !== -1) {
-      vehicles[index] = {
-        ...vehicles[index],
-        plate,
-        brand,
-        model,
-        capacity,
-        type
-      };
-      Swal.fire("Éxito", "Vehículo actualizado correctamente", "success");
-    }
-  } else {
-    //Lógica para Añadir
-    const newVehicle = {
-      id: vehicles.length > 0 ? Math.max(...vehicles.map(v => v.id)) + 1 : 1,
-      companyId: companyId,
-      plate,
-      brand,
-      model,
-      capacity,
-      type,
-      status: 'active'
-    };
-    vehicles.push(newVehicle);
-    Swal.fire("Éxito", "Vehículo añadido correctamente", "success");
-  }
-  
-  closeVehicleModal();
-  renderVehiclesList();
-}
-
-function renderVehiclesList() {
-  const container = document.getElementById('vehicles-list');
-  container.innerHTML = '';
-  
-  const companyVehicles = vehicles.filter(v => currentUser && v.companyId === currentUser.id);
-  
-  if (companyVehicles.length === 0) {
-    container.innerHTML = '<p>No hay vehículos registrados</p>';
-    return;
-  }
-  
-  companyVehicles.forEach(vehicle => {
-    const statusText = vehicle.status === 'active' ? 'Activo' : 'Inactivo';
-    const statusClass = `status-${vehicle.status}`;
-    
-    const card = document.createElement('div');
-    card.className = 'vehicle-card';
-    card.innerHTML = `
-      <h4>${vehicle.brand} ${vehicle.model} <span class="status-badge ${statusClass}">${statusText}</span></h4>
-      <div class="vehicle-property"><strong>Placa:</strong> ${vehicle.plate}</div>
-      <div class="vehicle-property"><strong>Capacidad:</strong> ${vehicle.capacity} kg</div>
-      <div class="vehicle-property"><strong>Tipo:</strong> ${vehicle.type}</div>
-      <div class="vehicle-actions">
-        <button onclick="showAddVehicleForm(${vehicle.id})">Editar</button>
-        <button onclick="toggleVehicleStatus(${vehicle.id})">${vehicle.status === 'active' ? 'Desactivar' : 'Activar'}</button>
-        <button onclick="deleteVehicle(${vehicle.id})">Eliminar</button>
-      </div>
-    `;
-    
-    container.appendChild(card);
-  });
-}
-
-function toggleVehicleStatus(vehicleId) {
-  const vehicle = vehicles.find(v => v.id === vehicleId);
-  if (vehicle) {
-    vehicle.status = vehicle.status === 'active' ? 'inactive' : 'active';
-    renderVehiclesList();
-    Swal.fire("Éxito", `Vehículo ${vehicle.status === 'active' ? 'activado' : 'desactivado'}`, "success");
-  }
-}
-
-function deleteVehicle(vehicleId) {
-  Swal.fire({
-    title: "¿Eliminar vehículo?",
-    text: "Esta acción no se puede deshacer",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Sí, eliminar",
-    cancelButtonText: "Cancelar"
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const index = vehicles.findIndex(v => v.id === vehicleId);
-      if (index !== -1) {
-        const isAssigned = collectionRequests.some(r => r.vehicleId === vehicleId);
-        
-        if (isAssigned) {
-          Swal.fire("Error", "No se puede eliminar un vehículo asignado a solicitudes", "error");
-        } else {
-          vehicles.splice(index, 1);
-          renderVehiclesList();
-          Swal.fire("Éxito", "Vehículo eliminado correctamente", "success");
+    // Mueve la solicitud completada de sampleRequests a collectionRequests (si aplica)
+    if (sampleRequests.some(r => r.id === requestId)) {
+        const index = sampleRequests.findIndex(r => r.id === requestId);
+        if (index > -1) {
+            const completedRequest = sampleRequests.splice(index, 1)[0];
+            completedRequest.userId = completedRequest.userId || 1; // Asegura userId
+            completedRequest.points = calculatePoints(completedRequest.type, collectedWeight); 
+            completedRequest.companyId = currentUser.id; 
+            collectionRequests.push(completedRequest);
         }
-      }
     }
-  });
+    
+    updateCompanySection(); // Refresca la sección completa
+    weightInput.value = '';
+  } else {
+    Swal.fire({ title: 'Error', text: 'Solicitud no encontrada', icon: 'error' });
+  }
 }
 
-// --- GESTIÓN DE USUARIOS (Empresa - Búsqueda) ---
+// --------------------------------------------------------------------
+// 9. GESTIÓN DE VEHÍCULOS (Compañía)
+// --------------------------------------------------------------------
 
-/* function searchUsers() {
-  const searchTerm = document.getElementById('user-search').value.toLowerCase();
-  const managedUsersList = document.getElementById('managed-users-list');
-  managedUsersList.innerHTML = '';
-  
-  let filteredUsers = users.filter(u => 
-    u.role === 'user' && 
-    u.status === 'active' && 
-    (u.name.toLowerCase().includes(searchTerm) || 
-     u.email.toLowerCase().includes(searchTerm))
-  );
-  
-  if (filteredUsers.length === 0) {
-    managedUsersList.innerHTML = '<li>No se encontraron usuarios</li>';
-    return;
-  }
-  
-  filteredUsers.forEach(user => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div>
-        <strong>${user.name}</strong> (${user.email})<br>
-        Teléfono: ${user.phone} | Puntos: ${user.points}
-      </div>
-      <button onclick="deleteUser(${user.id})">Desactivar</button>
-    `;
-    managedUsersList.appendChild(li);
-  });
-} */
-
-  // script.js - Modifica la función searchUsers
-
-function searchUsers(isCompanyView = false) {
-    // Determinar qué lista y qué campo de búsqueda usar
-    let listElementId = isCompanyView ? 'company-managed-users-list' : 'managed-users-list';
-    let searchInputId = isCompanyView ? 'company-user-search' : 'user-search';
-    
-    const searchText = document.getElementById(searchInputId).value.toLowerCase();
-    
-    // El administrador ve todos los usuarios
-    let filteredUsers = users; 
-    
-    // Si es la vista de compañía, debe filtrar solo por usuarios (type: 'user')
-    if (isCompanyView) {
-        filteredUsers = users.filter(u => u.type === 'user');
-    }
-
-    // Filtrar por texto de búsqueda (nombre o email)
-    if (searchText) {
-        filteredUsers = filteredUsers.filter(u => 
-            u.name.toLowerCase().includes(searchText) || 
-            u.email.toLowerCase().includes(searchText)
-        );
-    }
-
-    const list = document.getElementById(listElementId);
+// Renderiza la lista de vehículos de la compañía actual.
+function renderVehiclesList() {
+    const list = document.getElementById('vehicles-list');
     list.innerHTML = '';
-
-    filteredUsers.forEach(user => {
+    const companyVehicles = vehicles.filter(v => v.companyId === currentUser.id);
+    
+    if (companyVehicles.length === 0) { list.innerHTML = '<p>No tienes vehículos registrados.</p>'; return; }
+    
+    companyVehicles.forEach(vehicle => {
         const li = document.createElement('li');
+        li.className = 'list-item';
         li.innerHTML = `
-            <div>
-                <strong>${user.name}</strong> (${user.email}) - Puntos: ${user.points}
-                <span class="status-badge status-${user.status}">${user.status.toUpperCase()}</span>
+            <div class="item-info">
+                <strong>Placa: ${vehicle.plate}</strong> - ${vehicle.brand} ${vehicle.model}
+                <br><span>Capacidad: ${vehicle.capacity} kg | Tipo: ${vehicle.type}</span>
             </div>
-            <div class="user-actions">
-                <button onclick="editUser(${user.id})"><i class="fas fa-edit"></i> Editar</button>
-                <button onclick="toggleUserStatus(${user.id})">
-                    <i class="fas fa-${user.status === 'active' ? 'lock' : 'unlock'}"></i> 
-                    ${user.status === 'active' ? 'Desactivar' : 'Activar'}
-                </button>
-                <button class="logout-btn" onclick="deleteUser(${user.id})"><i class="fas fa-trash"></i> Eliminar</button>
+            <div class="item-actions">
+                <span class="status-badge status-${vehicle.status}">${getStatusName(vehicle.status)}</span>
+                <button onclick="showEditVehicleModal(${vehicle.id})"><i class="fas fa-edit"></i></button>
+                <button onclick="deleteVehicle(${vehicle.id})" style="background-color: #f44336;"><i class="fas fa-trash"></i></button>
             </div>
         `;
         list.appendChild(li);
     });
 }
 
-// --- SECCIÓN ADMINISTRADOR ---
+// Muestra el modal para añadir un nuevo vehículo
+function showAddVehicleModal() { 
+  Swal.fire({
+        title: 'Añadir Nuevo Vehículo',
+        html: `
+            <input id="vehicle-plate" class="swal2-input" placeholder="Placa" required>
+            <input id="vehicle-brand" class="swal2-input" placeholder="Marca" required>
+            <input id="vehicle-model" class="swal2-input" placeholder="Modelo" required>
+            <input id="vehicle-capacity" type="number" class="swal2-input" placeholder="Capacidad (kg)" min="1" required>
+            <select id="vehicle-type" class="swal2-select">
+                <option value="compacto">Compacto</option>
+                <option value="mediano">Mediano</option>
+                <option value="grande">Grande</option>
+            </select>
+        `,
+        showCancelButton: true, confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const plate = document.getElementById('vehicle-plate').value;
+            const brand = document.getElementById('vehicle-brand').value;
+            const model = document.getElementById('vehicle-model').value;
+            const capacity = parseInt(document.getElementById('vehicle-capacity').value);
+            const type = document.getElementById('vehicle-type').value;
 
-function updateAdminSection() {
-  const usersList = document.getElementById('users-list');
-  usersList.innerHTML = '';
-  
-  users.filter(u => u.role === 'user').forEach(user => {
-    const statusText = user.status === 'active' ? 'Activo' : 'Inactivo';
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div>
-        <strong>${user.name}</strong> (${user.email})<br>
-        Teléfono: ${user.phone} | Puntos: ${user.points} | 
-        Estado: <span class="status-badge status-${user.status}">${statusText}</span>
-      </div>
-      <div>
-        <button onclick="editUser(${user.id})">Editar</button>
-        <button onclick="deleteUser(${user.id})">${user.status === 'active' ? 'Desactivar' : 'Activar'}</button>
-      </div>
-    `;
-    usersList.appendChild(li);
-  });
-  
-  const companiesList = document.getElementById('companies-list');
-  companiesList.innerHTML = '';
-  
-  users.filter(u => u.role === 'company').forEach(company => {
-    const statusText = company.status === 'active' ? 'Activa' : 'Inactiva';
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div>
-        <strong>${company.name}</strong> (${company.email})<br>
-        Teléfono: ${company.phone} | 
-        Estado: <span class="status-badge status-${company.status}">${statusText}</span>
-      </div>
-      <div>
-        <button onclick="editCompany(${company.id})">Editar</button>
-        <button onclick="deleteCompany(${company.id})">${company.status === 'active' ? 'Desactivar' : 'Activar'}</button>
-      </div>
-    `;
-    companiesList.appendChild(li);
-  });
-  
-  filterAdminData();
-}
-
-function updateAdminStats(requests) {
-  const ctx = document.getElementById('adminRequestsChart').getContext('2d');
-  
-  if (window.adminChart) {
-    window.adminChart.destroy();
-  }
-  
-  const types = ['organico', 'inorganico', 'reciclable', 'peligroso'];
-  
-  window.adminChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: types.map(getWasteTypeName),
-      datasets: [{
-        label: 'Solicitudes por tipo',
-        data: types.map(type => 
-          requests.filter(r => r.type === type).length
-        ),
-        backgroundColor: '#2e7d32'
-      }, {
-        label: 'Peso total (kg)',
-        data: types.map(type => 
-          requests.filter(r => r.type === type).reduce((sum, r) => sum + r.weight, 0)
-        ),
-        backgroundColor: '#81c784',
-        type: 'line',
-        yAxisID: 'y1'
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Cantidad de solicitudes'
-          }
-        },
-        y1: {
-          position: 'right',
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Peso total (kg)'
-          },
-          grid: {
-            drawOnChartArea: false
-          }
+            if (!plate || !brand || !model || isNaN(capacity) || capacity <= 0) {
+                Swal.showValidationMessage(`Por favor completa todos los campos.`);
+                return false;
+            }
+            return { plate, brand, model, capacity, type };
         }
-      }
-    }
-  });
-}
-
-function filterAdminData() {
-  const startDate = document.getElementById('admin-start-date').value;
-  const endDate = document.getElementById('admin-end-date').value;
-  const filterType = document.getElementById('admin-filter-type').value;
-  const minWeight = parseFloat(document.getElementById('admin-min-weight').value) || 0;
-  const maxWeight = parseFloat(document.getElementById('admin-max-weight').value) || Infinity;
-  
-  let filteredRequests = [...collectionRequests];
-  
-  if (startDate) {
-    filteredRequests = filteredRequests.filter(r => r.date >= startDate);
-  }
-  
-  if (endDate) {
-    filteredRequests = filteredRequests.filter(r => r.date <= endDate);
-  }
-  
-  if (filterType !== 'all') {
-    filteredRequests = filteredRequests.filter(r => r.type === filterType);
-  }
-  
-  filteredRequests = filteredRequests.filter(r => 
-    r.weight >= minWeight && r.weight <= maxWeight
-  );
-  
-  const allRequestsList = document.getElementById('all-requests-list');
-  allRequestsList.innerHTML = '';
-  
-  filteredRequests.forEach(request => {
-    const user = users.find(u => u.id === request.userId);
-    const company = request.companyId ? users.find(u => u.id === request.companyId) : null;
-    
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div>
-        <strong>${user ? user.name : 'Usuario Eliminado'}</strong><br>
-        Fecha: ${request.date} | Tipo: ${getWasteTypeName(request.type)} | 
-        Peso: ${request.weight}kg | Puntos: ${request.points}<br>
-        Estado: ${getStatusName(request.status)} 
-        ${company ? `| Empresa: ${company.name}` : ''}
-      </div>
-      <div>
-        <button onclick="editRequest(${request.id})">Editar</button>
-        <button onclick="deleteRequest(${request.id})">Eliminar</button>
-      </div>
-    `;
-    allRequestsList.appendChild(li);
-  });
-  
-  updateAdminStats(filteredRequests);
-}
-
-// Funciones CRUD de Admin
-function addUserManually() {
-  Swal.fire({
-    title: 'Agregar Nuevo Usuario',
-    html: `
-      <input type="text" id="new-user-name" class="swal2-input" placeholder="Nombre completo" required>
-      <input type="email" id="new-user-email" class="swal2-input" placeholder="Email" required>
-      <input type="password" id="new-user-password" class="swal2-input" placeholder="Contraseña" required>
-      <input type="tel" id="new-user-phone" class="swal2-input" placeholder="Teléfono">
-      <input type="number" id="new-user-points" class="swal2-input" placeholder="Puntos iniciales" value="0">
-      <select id="new-user-role" class="swal2-select">
-        <option value="user">Usuario</option>
-        <option value="company">Empresa</option>
-        <option value="admin">Administrador</option>
-      </select>
-      <label style="display: block; margin-top: 10px;"><input type="checkbox" id="new-user-whatsapp" checked> WhatsApp</label>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Registrar',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      return {
-        name: document.getElementById('new-user-name').value,
-        email: document.getElementById('new-user-email').value,
-        password: document.getElementById('new-user-password').value,
-        phone: document.getElementById('new-user-phone').value,
-        points: parseInt(document.getElementById('new-user-points').value) || 0,
-        role: document.getElementById('new-user-role').value,
-        whatsapp: document.getElementById('new-user-whatsapp').checked,
-        status: 'active'
-      };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const newUser = {
-        id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-        ...result.value
-      };
-      
-      if (users.some(u => u.email === newUser.email)) {
-         Swal.fire('Error', 'Este correo ya está registrado', 'error');
-         return;
-      }
-
-      users.push(newUser);
-      updateAdminSection();
-      Swal.fire('¡Registrado!', 'El nuevo usuario ha sido creado.', 'success');
-    }
-  });
-}
-
-function editUser(userId) {
-  const user = users.find(u => u.id === userId);
-  if (!user) return;
-
-  Swal.fire({
-    title: `Editar Usuario: ${user.name}`,
-    html: `
-      <input type="text" id="edit-user-name" value="${user.name}" class="swal2-input" placeholder="Nombre">
-      <input type="email" id="edit-user-email" value="${user.email}" class="swal2-input" placeholder="Email">
-      <input type="tel" id="edit-user-phone" value="${user.phone}" class="swal2-input" placeholder="Teléfono">
-      <input type="number" id="edit-user-points" value="${user.points}" class="swal2-input" placeholder="Puntos">
-      <select id="edit-user-status" class="swal2-select">
-        <option value="active" ${user.status === 'active' ? 'selected' : ''}>Activo</option>
-        <option value="inactive" ${user.status === 'inactive' ? 'selected' : ''}>Inactivo</option>
-      </select>
-      <label style="display: block; margin-top: 10px;"><input type="checkbox" id="edit-user-whatsapp" ${user.whatsapp ? 'checked' : ''}> WhatsApp</label>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Guardar',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      return {
-        name: document.getElementById('edit-user-name').value,
-        email: document.getElementById('edit-user-email').value,
-        phone: document.getElementById('edit-user-phone').value,
-        points: parseInt(document.getElementById('edit-user-points').value),
-        status: document.getElementById('edit-user-status').value,
-        whatsapp: document.getElementById('edit-user-whatsapp').checked
-      };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      Object.assign(user, result.value);
-      updateAdminSection();
-      Swal.fire('¡Actualizado!', 'El usuario ha sido modificado.', 'success');
-    }
-  });
-}
-
-function deleteUser(userId) {
-  Swal.fire({
-    title: '¿Desactivar/Activar usuario?',
-    text: "Esta acción cambiará el estado del usuario.",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    confirmButtonText: 'Sí, cambiar estado',
-    cancelButtonText: 'Cancelar'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const user = users.find(u => u.id === userId);
-      if (user) {
-        user.status = user.status === 'active' ? 'inactive' : 'active';
-        updateAdminSection();
-        Swal.fire('¡Estado Cambiado!', `El usuario ha sido marcado como ${user.status}.`, 'success');
-      }
-    }
-  });
-}
-
-function addCompanyManually() {
-  Swal.fire({
-    title: 'Agregar Nueva Empresa',
-    html: `
-      <input type="text" id="new-company-name" class="swal2-input" placeholder="Nombre de la empresa" required>
-      <input type="email" id="new-company-email" class="swal2-input" placeholder="Email" required>
-      <input type="password" id="new-company-password" class="swal2-input" placeholder="Contraseña" required>
-      <input type="tel" id="new-company-phone" class="swal2-input" placeholder="Teléfono" required>
-      <label style="display: block; margin-top: 10px;"><input type="checkbox" id="new-company-whatsapp" checked> WhatsApp</label>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Registrar',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      return {
-        name: document.getElementById('new-company-name').value,
-        email: document.getElementById('new-company-email').value,
-        password: document.getElementById('new-company-password').value,
-        phone: document.getElementById('new-company-phone').value,
-        whatsapp: document.getElementById('new-company-whatsapp').checked,
-        role: 'company',
-        status: 'active'
-      };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const newCompany = {
-        id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-        ...result.value
-      };
-      if (users.some(u => u.email === newCompany.email)) {
-         Swal.fire('Error', 'Este correo ya está registrado', 'error');
-         return;
-      }
-      
-      users.push(newCompany);
-      updateAdminSection();
-      Swal.fire('¡Registrada!', 'La nueva empresa ha sido creada.', 'success');
-    }
-  });
-}
-
-function editCompany(companyId) {
-  const company = users.find(u => u.id === companyId && u.role === 'company');
-  if (!company) return;
-
-  Swal.fire({
-    title: `Editar Empresa: ${company.name}`,
-    html: `
-      <input type="text" id="edit-company-name" value="${company.name}" class="swal2-input" placeholder="Nombre">
-      <input type="email" id="edit-company-email" value="${company.email}" class="swal2-input" placeholder="Email">
-      <input type="tel" id="edit-company-phone" value="${company.phone}" class="swal2-input" placeholder="Teléfono">
-      <select id="edit-company-status" class="swal2-select">
-        <option value="active" ${company.status === 'active' ? 'selected' : ''}>Activa</option>
-        <option value="inactive" ${company.status === 'inactive' ? 'selected' : ''}>Inactiva</option>
-      </select>
-      <label style="display: block; margin-top: 10px;"><input type="checkbox" id="edit-company-whatsapp" ${company.whatsapp ? 'checked' : ''}> WhatsApp</label>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Guardar',
-    cancelButtonText: 'Cancelar',
-    preConfirm: () => {
-      return {
-        name: document.getElementById('edit-company-name').value,
-        email: document.getElementById('edit-company-email').value,
-        phone: document.getElementById('edit-company-phone').value,
-        status: document.getElementById('edit-company-status').value,
-        whatsapp: document.getElementById('edit-company-whatsapp').checked
-      };
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      Object.assign(company, result.value);
-      updateAdminSection();
-      Swal.fire('¡Actualizado!', 'La empresa ha sido modificada.', 'success');
-    }
-  });
-}
-
-function deleteCompany(companyId) {
-  Swal.fire({
-    title: '¿Desactivar/Activar empresa?',
-    text: "Esta acción cambiará el estado de la empresa.",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    confirmButtonText: 'Sí, cambiar estado',
-    cancelButtonText: 'Cancelar'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const company = users.find(u => u.id === companyId);
-      if (company) {
-        company.status = company.status === 'active' ? 'inactive' : 'active';
-        updateAdminSection();
-        Swal.fire('¡Estado Cambiado!', `La empresa ha sido marcada como ${company.status}.`, 'success');
-      }
-    }
-  });
-}
-
-function editRequest(requestId) {
-    Swal.fire('Funcionalidad Pendiente', `Editar solicitud #${requestId} aún no está implementado.`, 'info');
-}
-
-function deleteRequest(requestId) {
-    Swal.fire({
-        title: '¿Eliminar solicitud?',
-        text: "Esta acción eliminará la solicitud de forma permanente.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            const initialLength = collectionRequests.length;
-            collectionRequests = collectionRequests.filter(r => r.id !== requestId);
-            if (collectionRequests.length < initialLength) {
-                filterAdminData();
-                Swal.fire('¡Eliminada!', 'La solicitud ha sido eliminada.', 'success');
-            } else {
-                Swal.fire('Error', 'Solicitud no encontrada.', 'error');
-            }
+            addVehicle(result.value);
         }
     });
 }
 
-// --- FUNCIONES DE EXPORTACIÓN ---
-
-function exportUsersToPDF() {
-  const usersToExport = users.filter(u => u.role === 'user');
-  let content = [
-    ['ID', 'Nombre', 'Email', 'Teléfono', 'Puntos', 'Estado']
-  ];
-  
-  usersToExport.forEach(user => {
-    content.push([
-      user.id,
-      user.name,
-      user.email,
-      user.phone,
-      user.points,
-      user.status === 'active' ? 'Activo' : 'Inactivo'
-    ]);
-  });
-  
-  const csvContent = content.map(row => row.join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'usuarios_ardimi.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  
-  Swal.fire('Reporte Generado', 'El reporte de usuarios se ha descargado en formato CSV.', 'success');
+// Añade el vehículo a la lista
+function addVehicle({ plate, brand, model, capacity, type }) {
+    const newVehicle = {
+        id: vehicles.length > 0 ? Math.max(...vehicles.map(v => v.id)) + 1 : 1,
+        companyId: currentUser.id, plate, brand, model, capacity, type, status: 'active'
+    };
+    vehicles.push(newVehicle);
+    Swal.fire('¡Añadido!', 'Vehículo registrado con éxito.', 'success');
+    renderVehiclesList();
 }
 
-function exportRequestsToExcel() {
-  let content = [
-    ['ID', 'Usuario', 'Fecha', 'Tipo', 'Peso (kg)', 'Puntos', 'Estado', 'Empresa']
-  ];
-  
-  collectionRequests.forEach(request => {
-    const user = users.find(u => u.id === request.userId);
-    const company = request.companyId ? users.find(u => u.id === request.companyId) : null;
+// Muestra el modal para editar un vehículo
+function showEditVehicleModal(vehicleId) {
+  const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (!vehicle) return;
+    currentEditingVehicleId = vehicleId; // Guarda el ID para usarlo en la función 'editVehicle'
+
+    Swal.fire({
+        title: `Editar Vehículo: ${vehicle.plate}`,
+        html: `
+            <input id="edit-plate" class="swal2-input" placeholder="Placa" value="${vehicle.plate}" required>
+            <input id="edit-brand" class="swal2-input" placeholder="Marca" value="${vehicle.brand}" required>
+            <input id="edit-model" class="swal2-input" placeholder="Modelo" value="${vehicle.model}" required>
+            <input id="edit-capacity" type="number" class="swal2-input" placeholder="Capacidad (kg)" value="${vehicle.capacity}" min="1" required>
+            <select id="edit-type" class="swal2-select">
+                <option value="compacto" ${vehicle.type === 'compacto' ? 'selected' : ''}>Compacto</option>
+                <option value="mediano" ${vehicle.type === 'mediano' ? 'selected' : ''}>Mediano</option>
+                <option value="grande" ${vehicle.type === 'grande' ? 'selected' : ''}>Grande</option>
+            </select>
+            <select id="edit-status" class="swal2-select">
+                <option value="active" ${vehicle.status === 'active' ? 'selected' : ''}>Activo</option>
+                <option value="inactive" ${vehicle.status === 'inactive' ? 'selected' : ''}>Inactivo</option>
+            </select>
+        `,
+        showCancelButton: true, confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const plate = document.getElementById('edit-plate').value;
+            const brand = document.getElementById('edit-brand').value;
+            const model = document.getElementById('edit-model').value;
+            const capacity = parseInt(document.getElementById('edit-capacity').value);
+            const type = document.getElementById('edit-type').value;
+            const status = document.getElementById('edit-status').value;
+
+            if (!plate || !brand || !model || isNaN(capacity) || capacity <= 0) {
+                Swal.showValidationMessage(`Por favor completa todos los campos.`);
+                return false;
+            }
+            return { plate, brand, model, capacity, type, status };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            editVehicle(currentEditingVehicleId, result.value);
+            currentEditingVehicleId = null; // Limpia la referencia
+        }
+    });
+}
+
+// Guarda los cambios del vehículo
+function editVehicle(id, data) {
+    const vehicleIndex = vehicles.findIndex(v => v.id === id);
+    if (vehicleIndex > -1) {
+        Object.assign(vehicles[vehicleIndex], data);
+        Swal.fire('¡Actualizado!', 'Vehículo modificado con éxito.', 'success');
+        renderVehiclesList();
+    }
+}
+// Elimina un vehículo
+function deleteVehicle(id) {
+    Swal.fire({
+        title: '¿Estás seguro?', text: "No podrás revertir esta acción!", icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            vehicles = vehicles.filter(v => v.id !== id);
+            Swal.fire('¡Eliminado!', 'El vehículo ha sido eliminado.', 'success');
+            renderVehiclesList();
+        }
+    });
+}
+
+// --------------------------------------------------------------------
+// 10. GESTIÓN DE USUARIOS (Compañía)
+// --------------------------------------------------------------------
+
+// Muestra el modal para añadir un nuevo usuario
+function showAddUserModal() {
+  Swal.fire({
+        title: 'Añadir Nuevo Usuario',
+        html: `
+            <input id="new-user-name" class="swal2-input" placeholder="Nombre completo" required>
+            <input id="new-user-email" type="email" class="swal2-input" placeholder="Correo electrónico" required>
+            <input id="new-user-password" type="password" class="swal2-input" placeholder="Contraseña inicial" required>
+            <input id="new-user-phone" class="swal2-input" placeholder="Teléfono" required>
+            <label><input type="checkbox" id="new-user-whatsapp" checked> Recibir notificaciones por WhatsApp</label>
+        `,
+        showCancelButton: true, confirmButtonText: 'Registrar', cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const name = document.getElementById('new-user-name').value;
+            const email = document.getElementById('new-user-email').value;
+            const password = document.getElementById('new-user-password').value;
+            const phone = document.getElementById('new-user-phone').value;
+            const whatsapp = document.getElementById('new-user-whatsapp').checked;
+
+            if (!name || !email || !password || !phone) {
+                Swal.showValidationMessage(`Por favor completa todos los campos.`);
+                return false;
+            }
+            if (users.some(u => u.email === email)) {
+                Swal.showValidationMessage(`Este correo ya está registrado.`);
+                return false;
+            }
+            return { name, email, password, phone, whatsapp };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            addUserManually(result.value);
+        }
+    });
+}
+
+// Añade un nuevo usuario (gestionado por la compañía)
+function addUserManually({ name, email, password, phone, whatsapp }) {
+    const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
+
+    const newUser = { id: newId, name, email, password, role: 'user', phone, points: 0, whatsapp, status: 'active' };
+    users.push(newUser);
+    Swal.fire('¡Añadido!', 'Usuario registrado con éxito.', 'success');
+    searchUsers(true); // Refresca la lista de usuarios gestionados
+}
+
+/**
+ * Filtra y renderiza la lista de usuarios.
+ * @param {boolean} forceRender Si es true, renderiza toda la lista sin filtrar.
+ */
+function searchUsers(forceRender) {
+    const searchTerm = document.getElementById('user-search-input').value.toLowerCase();
     
-    content.push([
-      request.id,
-      user ? user.name : 'Desconocido',
-      request.date,
-      getWasteTypeName(request.type).replace(/[\u2600-\u26FF\u2700-\u27BF]/g, '').trim(),
-      request.weight,
-      request.points,
-      getStatusName(request.status),
-      company ? company.name : 'N/A'
-    ]);
-  });
-  
-  const csvContent = content.map(row => row.join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'solicitudes_ardimi.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  
-  Swal.fire('Reporte Generado', 'El reporte de solicitudes se ha descargado en formato CSV.', 'success');
+    let filteredUsers = users.filter(u => u.role === 'user'); 
+    
+    if (!forceRender && searchTerm) {
+        filteredUsers = filteredUsers.filter(u => 
+            u.name.toLowerCase().includes(searchTerm) || 
+            u.email.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    renderManagedUsersList(filteredUsers);
 }
 
+// Renderiza la lista de usuarios que la compañía gestiona
+function renderManagedUsersList(managedUsers) {
+    const list = document.getElementById('managed-users-list');
+    list.innerHTML = '';
 
-// --- LÓGICA DE INICIALIZACIÓN ---
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicia la aplicación mostrando la vista de Login
-    showLoginForm();
-});
+    if (managedUsers.length === 0) { list.innerHTML = '<p>No se encontraron usuarios que coincidan con la búsqueda.</p>'; return; }
+
+    managedUsers.forEach(user => {
+        const li = document.createElement('li');
+        li.className = 'list-item';
+        li.innerHTML = `
+            <div class="item-info">
+                <strong>${user.name}</strong> (${user.email})
+                <br><span>Puntos: ${user.points} | Teléfono: ${user.phone}</span>
+            </div>
+            <div class="item-actions">
+                <span class="status-badge status-${user.status}">${getStatusName(user.status)}</span>
+                <button onclick="editUser(${user.id})"><i class="fas fa-edit"></i></button>
+                <button onclick="toggleUserStatus(${user.id})" style="background-color: ${user.status === 'active' ? '#ff9800' : '#4CAF50'};"><i class="fas fa-power-off"></i></button>
+                <button onclick="deleteUser(${user.id})" style="background-color: #f44336;"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+}
+
+// Muestra el modal para editar datos de un usuario
+function editUser(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    Swal.fire({
+        title: `Editar Usuario: ${user.name}`,
+        html: `
+            <input id="edit-user-name" class="swal2-input" placeholder="Nombre" value="${user.name}" required>
+            <input id="edit-user-email" type="email" class="swal2-input" placeholder="Email" value="${user.email}" required>
+            <input id="edit-user-phone" class="swal2-input" placeholder="Teléfono" value="${user.phone}">
+            <input id="edit-user-points" type="number" class="swal2-input" placeholder="Puntos" value="${user.points}" min="0">
+            <select id="edit-user-status" class="swal2-select">
+                <option value="active" ${user.status === 'active' ? 'selected' : ''}>Activo</option>
+                <option value="inactive" ${user.status === 'inactive' ? 'selected' : ''}>Inactivo</option>
+            </select>
+            <label><input type="checkbox" id="edit-user-whatsapp" ${user.whatsapp ? 'checked' : ''}> WhatsApp</label>
+        `,
+        showCancelButton: true, confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            return {
+                name: document.getElementById('edit-user-name').value, email: document.getElementById('edit-user-email').value,
+                phone: document.getElementById('edit-user-phone').value, points: parseInt(document.getElementById('edit-user-points').value),
+                status: document.getElementById('edit-user-status').value, whatsapp: document.getElementById('edit-user-whatsapp').checked
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Object.assign(user, result.value);
+            searchUsers(true); // CORREGIDO: Refresca la lista de la Compañía
+            Swal.fire('¡Actualizado!', 'El usuario ha sido modificado.', 'success');
+        }
+    });
+}
+
+// Cambia el estado (activo/inactivo) de un usuario
+function toggleUserStatus(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    user.status = user.status === 'active' ? 'inactive' : 'active';
+    searchUsers(true); // CORREGIDO: Refresca la lista de la Compañía
+    Swal.fire('¡Estado cambiado!', `El usuario ahora está ${getStatusName(user.status)}.`, 'success');
+}
+
+// Elimina un usuario
+function deleteUser(userId) {
+    Swal.fire({
+        title: '¿Estás seguro?', text: "¡No podrás revertir esto!", icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const index = users.findIndex(u => u.id === userId);
+            if (index > -1) { users.splice(index, 1); }
+            collectionRequests = collectionRequests.filter(r => r.userId !== userId);
+
+            searchUsers(true); // CORREGIDO: Refresca la lista de la Compañía
+            Swal.fire('¡Eliminado!', 'El usuario y sus datos han sido eliminados.', 'success');
+        }
+    });
+}
