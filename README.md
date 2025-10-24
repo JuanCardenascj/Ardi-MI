@@ -1,6 +1,6 @@
 # Ardi-MI - Gestión de Residuos
 
-<img width="500" height="500" alt="logo" src="https://github.com/user-attachments/assets/0ca51838-9956-4680-ab3c-9baf1563e497" />
+![DashBoard](https://github.com/user-attachments/assets/1b302bef-ebd2-4abb-b3f4-d317b521c3c2)
 
 
 Es un Proyecto Software creado para satisfacer las necesidades de los usuarios y añadirle el lado divertido a la recolección de residuos o basura de los hogares. Se ideo esta web con el fin de: Clasificar, Recolectar, Puntos, Experiencia, Bonos, Regalos, Premios. Si es claro la Aplicación Web ofrece a los usuarios recolectores puntos por cada gestión que realicen directametne desde su AppWeb, de acuerdo al peso que se va registrando y dependiende del tipo de desecho, esto da una totalidad gramaje, y está se ira sumando los dias de recolección, para cada mes los usuarios tenga derecho a cajear sus puntos por lo gradiosos premios que ofrece Ardi-MI.
