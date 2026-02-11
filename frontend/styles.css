@@ -1,0 +1,289 @@
+:root {
+  --primary: #2e7d32;
+  --secondary: #81c784;
+  --dark: #1b5e20;
+  --light: #f1f8e9;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-position: center;
+  opacity: 1.0;
+  background-color: transparent; /* Permite ver el fondo con el logo */
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Fondo semi-transparente con logo */
+body::before {
+  content: "";
+  background: url('images/logo.png') no-repeat;
+  opacity: 0.1;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-size: 900px;
+  background-position: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.header {
+  background-color: var(--primary);
+  color: white;
+  padding: 20px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+}
+
+h1 {
+  color: var(--dark);
+  text-align: center;
+  margin: 20px 0;
+}
+
+#form-section {
+  padding: 20px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: var(--dark);
+}
+
+.login-options {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.login-options a {
+  color: var(--primary);
+  text-decoration: none;
+  display: block;
+  margin: 5px 0;
+}
+
+.login-options a:hover {
+  text-decoration: underline;
+}
+
+.whatsapp-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 10px 0;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Estilos específicos del Dashboard */
+
+#dashboard-container {
+  width: 100%;
+  max-width: 1200px;
+  padding: 20px;
+  margin: 20px auto; 
+  min-height: 90vh;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  position: relative; 
+}
+
+/* Estilos de las secciones internas */
+.section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.section h2, .section h3 {
+  color: var(--dark);
+  margin-top: 0;
+  border-bottom: 2px solid var(--secondary);
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+/* Diseño de cuadrícula para el dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Tarjetas y Listas */
+.request-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.request-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.detail-item {
+    flex: 1 1 45%;
+    font-size: 0.9em;
+}
+
+.detail-label {
+    font-weight: bold;
+    color: var(--dark);
+    display: block;
+}
+
+.request-actions button {
+    width: auto;
+    margin-right: 10px;
+    padding: 8px 15px;
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: white;
+}
+
+.status-pendiente { background-color: #FFC107; }
+.status-aceptada { background-color: #4CAF50; }
+.status-rechazada { background-color: #F44336; }
+.status-completada, .status-completed { background-color: #03A9F4; }
+.status-active { background-color: #4CAF50; }
+.status-inactive { background-color: #FF9800; }
+
+
+/* Listas de vehículos y usuarios */
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #eee;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    background-color: #fafafa;
+}
+
+.item-info {
+    flex-grow: 1;
+}
+
+.item-actions button {
+    width: auto;
+    padding: 5px 10px;
+    margin-left: 5px;
+    font-size: 0.9em;
+}
+
+/* Gráficos */
+.chart-container {
+    height: 300px; 
+    margin-bottom: 20px;
+}
+
+/* Botón de Logout */
+.logout-btn {
+  background-color: #f44336; 
+  width: auto;
+  padding: 10px 15px;
+  margin-top: 0;
+}
+.logout-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* Media Queries para responsividad */
+@media (max-width: 768px) {
+  .container {
+    margin: 10px;
+    border-radius: 0;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .logout-btn.desktop-hidden {
+    display: inline-block; /* Muestra el botón de logout en el header para móviles */
+  }
+  
+  .logout-btn:not(.desktop-hidden) {
+    display: none !important; /* Oculta el botón grande de abajo en móviles */
+  }
+
+  .request-details {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 769px) {
+    .logout-btn.desktop-hidden {
+        display: none !important; /* Oculta el botón de logout del header en desktop */
+    }
+}

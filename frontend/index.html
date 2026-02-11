@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARDI-MI ♻️ - Gestión de Residuos</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="../frontend/styles.css">
+
+</head>
+
+<body>
+  <div class="container" id="login-page">
+    <div class="header">
+      <img src="images/logo.png" alt="logo" class="logo">
+      <span>ARDI-MI ♻️</span>
+    </div>
+    <h1>Gestión de Residuos</h1>
+
+    <div id="form-section">
+      <h2>Iniciar Sesión</h2>
+      <input type="email" id="loginEmail" placeholder="Correo electrónico" required />
+      <input type="password" id="loginPassword" placeholder="Contraseña" required />
+      
+      <div class="whatsapp-option">
+        <input type="checkbox" id="whatsappNotification">
+        <label for="whatsappNotification">Recibir notificaciones por WhatsApp</label>
+      </div>
+      
+      <button onclick="login()">Ingresar</button>
+
+      <div class="login-options">
+        <a href="#" onclick="showPasswordRecovery()">¿Olvidaste tu contraseña?</a>
+        <a href="#" onclick="showRegisterForm()">¿Todavía no tienes una cuenta? Regístrate</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container hidden" id="password-page">
+    <div class="header">
+      <img src="images/logo.png" alt="logo" class="logo">
+      <span>ARDI-MI ♻️</span>
+    </div>
+
+    <div id="form-section">
+      <h2>Recuperar Contraseña</h2>
+      <input type="email" id="recoveryEmail" placeholder="Correo electrónico" required />
+      <button onclick="sendPasswordRecovery()">Enviar Enlace</button>
+      <button class="logout-btn" onclick="showLoginForm()">Volver al Login</button>
+    </div>
+  </div>
+
+  <div class="container hidden" id="register-page">
+    <div class="header">
+      <img src="images/logo.png" alt="logo" class="logo">
+      <span>ARDI-MI ♻️</span>
+    </div>
+
+    <div id="form-section">
+      <h2>Registro de Usuario</h2>
+      <input type="text" id="registerName" placeholder="Nombre completo" required />
+      <input type="email" id="registerEmail" placeholder="Correo electrónico" required />
+      <input type="password" id="registerPassword" placeholder="Contraseña" required />
+      <input type="password" id="registerConfirmPassword" placeholder="Confirmar contraseña" required />
+      <input type="tel" id="registerPhone" placeholder="Teléfono (para notificaciones)" />
+      
+      <select id="registerRole">
+        <option value="user">Usuario</option>
+        <option value="company">Empresa Recolectora</option>
+      </select>
+      
+      <div class="whatsapp-option">
+        <input type="checkbox" id="registerWhatsappNotification" checked>
+        <label for="registerWhatsappNotification">Recibir notificaciones por WhatsApp</label>
+      </div>
+      
+      <button onclick="register()">Registrarse</button>
+      <button class="logout-btn" onclick="showLoginForm()">Volver al Login</button>
+    </div>
+  </div>
+
+  <div class="container hidden" id="dashboard-container">
+    
+    <div class="header" style="justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <img src="images/logo.png" alt="logo" class="logo">
+        <span>ARDI-MI ♻️ - <span id="user-role-display"></span></span>
+      </div>
+      <button class="logout-btn desktop-hidden" onclick="logout()">Cerrar Sesión</button>
+    </div>
+    
+    <h1 id="welcome-message"></h1>
+
+    <div id="user-section" class="role-section hidden">
+        <h2><i class="fas fa-trash-alt"></i> Solicitar Recolección</h2>
+        <div class="section">
+            <input type="date" id="collectionDate" required />
+            <select id="wasteType" required>
+                <option value="">Seleccione tipo de residuo</option>
+                <option value="organico">Orgánico 🍂</option>
+                <option value="inorganico">Inorgánico 🏗️</option>
+                <option value="reciclable">Reciclable ♻️</option>
+                <option value="peligroso">Peligroso ☣️</option>
+            </select>
+            <input type="number" id="wasteWeight" placeholder="Peso estimado (kg)" required min="0.1" step="0.1" />
+            <button onclick="createCollectionRequest()">Confirmar Solicitud</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="section">
+                <h3><i class="fas fa-star"></i> Mis Puntos</h3>
+                <p>Puntos acumulados: <span id="total-points" style="font-weight: bold; color: var(--primary);">0</span></p>
+            </div>
+            <div class="section">
+                <h3><i class="fas fa-chart-bar"></i> Historial de Puntos</h3>
+                <div class="chart-container">
+                    <canvas id="pointsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3><i class="fas fa-history"></i> Historial de Solicitudes</h3>
+            <ul id="user-requests-list">
+                </ul>
+        </div>
+    </div>
+
+
+    <div id="company-section" class="role-section hidden">
+        
+        <div class="dashboard-grid">
+            
+            <div class="section">
+                <h3><i class="fas fa-chart-pie"></i> Estadísticas de Gestión</h3>
+                <div class="chart-container">
+                    <canvas id="companyStatsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3><i class="fas fa-check-circle"></i> Registrar Recolección</h3>
+                <select id="request-select">
+                    <option value="">Seleccione una solicitud aceptada</option>
+                </select>
+                <input type="number" id="collected-weight" placeholder="Peso real recolectado (kg)" min="0.1" step="0.1" required />
+                <button onclick="registerCollection()">Completar Recolección</button>
+            </div>
+            
+        </div>
+
+        <div class="section">
+            <h3><i class="fas fa-list"></i> Solicitudes Pendientes</h3>
+            <div id="pending-requests-container">
+                <p>Cargando solicitudes...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3><i class="fas fa-car"></i> Gestión de Vehículos</h3>
+            <ul id="vehicles-list">
+                </ul>
+            <button onclick="showAddVehicleModal()"><i class="fas fa-plus"></i> Añadir Vehículo</button>
+        </div>
+        
+        <div class="section">
+            <h3><i class="fas fa-users"></i> Gestión de Usuarios</h3>
+            <button onclick="showAddUserModal()" style="margin-bottom: 15px;"><i class="fas fa-user-plus"></i> Añadir Usuario</button>
+            
+            <div class="filter-section" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="user-search-input" placeholder="Buscar por nombre o correo" style="flex-grow: 1; margin: 0;">
+                <button onclick="searchUsers(false)" style="width: auto; margin: 0;"><i class="fas fa-search"></i> Buscar</button>
+            </div>
+            
+            <ul id="managed-users-list">
+                </ul>
+        </div>
+    </div>
+    
+    <button class="logout-btn" onclick="logout()" style="width: 100%; margin-top: 20px;">Cerrar Sesión</button>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
