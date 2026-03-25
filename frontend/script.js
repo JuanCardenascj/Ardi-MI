@@ -1,6 +1,6 @@
 // ====================================================================
 // ARDI-MI ♻️ - GESTIÓN DE RESIDUOS (script.js)
-// VERSIÓN CONECTADA A LA API
+// VERSIÓN COMPLETA Y FUNCIONAL
 // ====================================================================
 
 // Configuración de la API
@@ -13,7 +13,6 @@ let notificationInterval = null;
 // 1. FUNCIONES DE UTILIDAD PARA LA API
 // ====================================================================
 
-// Función para hacer peticiones autenticadas
 async function apiFetch(endpoint, options = {}) {
     const headers = {
         'Content-Type': 'application/json',
@@ -70,12 +69,12 @@ function logout() {
     currentUser = null;
     authToken = null;
     localStorage.removeItem('token');
-    clearInterval(notificationInterval);
+    if (notificationInterval) clearInterval(notificationInterval);
     showLoginForm();
 }
 
 // ====================================================================
-// 3. AUTENTICACIÓN Y REGISTRO (CONECTADO A API)
+// 3. AUTENTICACIÓN Y REGISTRO
 // ====================================================================
 
 async function login() {
@@ -89,7 +88,6 @@ async function login() {
     }
     
     try {
-        // Login con la API
         const formData = new URLSearchParams();
         formData.append('username', email);
         formData.append('password', password);
@@ -110,7 +108,6 @@ async function login() {
         authToken = data.access_token;
         localStorage.setItem('token', authToken);
         
-        // Obtener perfil del usuario
         const userProfile = await apiFetch('/usuarios/perfil');
         currentUser = {
             ...userProfile,
@@ -118,7 +115,6 @@ async function login() {
             points: 0
         };
         
-        // Obtener puntos totales del usuario
         try {
             const puntosData = await apiFetch('/puntos/total');
             currentUser.points = puntosData.total;
@@ -163,7 +159,9 @@ async function register() {
             nombre: name,
             email: email,
             password: password,
-            rol: role
+            rol: role,
+            telefono: phone,
+            whatsapp: whatsappNotification
         };
         
         const response = await fetch(`${API_URL}/usuarios/registro`, {
@@ -234,7 +232,7 @@ async function updateDashboard() {
 }
 
 // ====================================================================
-// 5. SECCIÓN USUARIO (CONECTADA A API)
+// 5. SECCIÓN USUARIO
 // ====================================================================
 
 async function updateUserSection() {
@@ -247,7 +245,6 @@ async function loadUserRequests() {
         const requests = await apiFetch('/solicitudes/');
         renderUserRequestsList(requests);
         
-        // Actualizar gráfico
         const ctx = document.getElementById('pointsChart').getContext('2d');
         if (window.pointsChart) window.pointsChart.destroy();
         
@@ -257,7 +254,7 @@ async function loadUserRequests() {
                 labels: requests.map(r => new Date(r.fecha_solicitud).toLocaleDateString()),
                 datasets: [{
                     label: 'Puntos obtenidos',
-                    data: requests.map(r => calculatePoints(r.tipo_residuo, 1)), // Peso estimado
+                    data: requests.map(r => calculatePoints(r.tipo_residuo, 1)),
                     backgroundColor: '#2e7d32'
                 }]
             },
@@ -302,7 +299,6 @@ async function createCollectionRequest() {
         return;
     }
     
-    // Obtener dirección (puedes agregar un campo en el formulario)
     const address = prompt("Por favor ingresa la dirección de recolección:");
     if (!address) return;
     
@@ -315,7 +311,6 @@ async function createCollectionRequest() {
             })
         });
         
-        // Calcular y sumar puntos (1 punto por kg como base)
         const pointsEarned = Math.floor(weight);
         currentUser.points += pointsEarned;
         
@@ -336,12 +331,15 @@ async function createCollectionRequest() {
 }
 
 // ====================================================================
-// 6. SECCIÓN EMPRESA (CONECTADA A API)
+// 6. SECCIÓN EMPRESA - COMPLETA
 // ====================================================================
 
 async function updateCompanySection() {
+    console.log('Actualizando sección empresa...');
     await loadPendingRequests();
     await loadVehicles();
+    await loadCompanyStats();
+    await searchUsers(true);
 }
 
 async function loadPendingRequests() {
@@ -352,33 +350,33 @@ async function loadPendingRequests() {
         
         if (requests.length === 0) {
             container.innerHTML = '<p>No hay solicitudes pendientes.</p>';
-            return;
+        } else {
+            requests.forEach(request => {
+                const card = document.createElement('div');
+                card.className = 'request-card';
+                card.innerHTML = `
+                    <div class="request-header">
+                        <h4>Solicitud #${request.id}</h4>
+                        <span class="status-badge status-pendiente">Pendiente</span>
+                    </div>
+                    <div class="request-details">
+                        <div class="detail-item"><span class="detail-label">Tipo:</span><span>${getWasteTypeName(request.tipo_residuo)}</span></div>
+                        <div class="detail-item"><span class="detail-label">Dirección:</span><span>${request.direccion}</span></div>
+                        <div class="detail-item"><span class="detail-label">Fecha:</span><span>${new Date(request.fecha_solicitud).toLocaleDateString()}</span></div>
+                    </div>
+                    <div class="request-actions">
+                        <button onclick="acceptRequest(${request.id})" style="background-color: var(--primary);">Aceptar</button>
+                        <button onclick="rejectRequest(${request.id})" style="background-color: #d32f2f;">Rechazar</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
         }
-        
-        requests.forEach(request => {
-            const card = document.createElement('div');
-            card.className = 'request-card';
-            card.innerHTML = `
-                <div class="request-header">
-                    <h4>Solicitud #${request.id}</h4>
-                    <span class="status-badge status-pendiente">Pendiente</span>
-                </div>
-                <div class="request-details">
-                    <div class="detail-item"><span class="detail-label">Tipo:</span><span>${getWasteTypeName(request.tipo_residuo)}</span></div>
-                    <div class="detail-item"><span class="detail-label">Dirección:</span><span>${request.direccion}</span></div>
-                    <div class="detail-item"><span class="detail-label">Fecha:</span><span>${new Date(request.fecha_solicitud).toLocaleDateString()}</span></div>
-                </div>
-                <div class="request-actions">
-                    <button onclick="acceptRequest(${request.id})" style="background-color: var(--primary);">Aceptar</button>
-                    <button onclick="rejectRequest(${request.id})" style="background-color: #d32f2f;">Rechazar</button>
-                </div>
-            `;
-            container.appendChild(card);
-        });
         
         updateRequestsSelect(requests);
     } catch (error) {
         console.error('Error cargando solicitudes:', error);
+        document.getElementById('pending-requests-container').innerHTML = '<p>Error al cargar solicitudes</p>';
     }
 }
 
@@ -388,7 +386,6 @@ async function acceptRequest(requestId) {
             method: 'PUT',
             body: JSON.stringify({ estado: 'aceptada' })
         });
-        
         Swal.fire('Éxito', 'Solicitud aceptada', 'success');
         await updateCompanySection();
     } catch (error) {
@@ -455,24 +452,23 @@ async function loadVehicles() {
         
         if (vehicles.length === 0) {
             list.innerHTML = '<p>No hay vehículos registrados.</p>';
-            return;
+        } else {
+            vehicles.forEach(vehicle => {
+                const li = document.createElement('li');
+                li.className = 'list-item';
+                li.innerHTML = `
+                    <div class="item-info">
+                        <strong>${vehicle.placa}</strong> - ${vehicle.marca} ${vehicle.modelo}
+                        <br><span>Capacidad: ${vehicle.capacidad} kg | Tipo: ${vehicle.tipo}</span>
+                    </div>
+                    <div class="item-actions">
+                        <span class="status-badge status-${vehicle.estado}">${getStatusName(vehicle.estado)}</span>
+                        <button onclick="deleteVehicle(${vehicle.id})" style="background-color: #f44336;"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
         }
-        
-        vehicles.forEach(vehicle => {
-            const li = document.createElement('li');
-            li.className = 'list-item';
-            li.innerHTML = `
-                <div class="item-info">
-                    <strong>${vehicle.placa}</strong> - ${vehicle.marca} ${vehicle.modelo}
-                    <br><span>Capacidad: ${vehicle.capacidad} kg | Tipo: ${vehicle.tipo}</span>
-                </div>
-                <div class="item-actions">
-                    <span class="status-badge status-${vehicle.estado}">${getStatusName(vehicle.estado)}</span>
-                    <button onclick="deleteVehicle(${vehicle.id})" style="background-color: #f44336;"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
-            list.appendChild(li);
-        });
     } catch (error) {
         console.error('Error cargando vehículos:', error);
     }
@@ -488,9 +484,7 @@ async function deleteVehicle(vehicleId) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await apiFetch(`/vehiculos/${vehicleId}`, {
-                    method: 'DELETE'
-                });
+                await apiFetch(`/vehiculos/${vehicleId}`, { method: 'DELETE' });
                 Swal.fire('Eliminado', 'Vehículo eliminado', 'success');
                 await loadVehicles();
             } catch (error) {
@@ -540,6 +534,7 @@ function showAddVehicleModal() {
 
 function updateRequestsSelect(requests) {
     const select = document.getElementById('request-select');
+    if (!select) return;
     select.innerHTML = '<option value="">Seleccione una solicitud</option>';
     
     requests.forEach(request => {
@@ -551,7 +546,229 @@ function updateRequestsSelect(requests) {
 }
 
 // ====================================================================
-// 7. FUNCIONES DE UTILIDAD (Sin cambios)
+// 7. ESTADÍSTICAS PARA EMPRESA
+// ====================================================================
+
+async function loadCompanyStats() {
+    try {
+        const requests = await apiFetch('/solicitudes/');
+        
+        const counts = {
+            pendiente: 0,
+            aceptada: 0,
+            completada: 0,
+            rechazada: 0
+        };
+        
+        requests.forEach(request => {
+            const estado = request.estado;
+            if (estado === 'pendiente') counts.pendiente++;
+            else if (estado === 'aceptada') counts.aceptada++;
+            else if (estado === 'completada') counts.completada++;
+            else if (estado === 'rechazada') counts.rechazada++;
+        });
+        
+        renderCompanyStatsChart(counts);
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+        renderCompanyStatsChart({ pendiente: 0, aceptada: 0, completada: 0, rechazada: 0 });
+    }
+}
+
+function renderCompanyStatsChart(counts) {
+    const canvas = document.getElementById('companyStatsChart');
+    if (!canvas) {
+        console.error('No se encontró el canvas companyStatsChart');
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    if (window.companyChart) {
+        window.companyChart.destroy();
+    }
+    
+    const labels = ['Pendiente', 'Aceptada', 'Completada', 'Rechazada'];
+    const data = [counts.pendiente, counts.aceptada, counts.completada, counts.rechazada];
+    const colors = ['#FFC107', '#4CAF50', '#03A9F4', '#F44336'];
+    
+    window.companyChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: {
+                    display: true,
+                    text: 'Estado de Solicitudes',
+                    font: { size: 16 }
+                }
+            }
+        }
+    });
+}
+
+// ====================================================================
+// 8. GESTIÓN DE USUARIOS PARA EMPRESA
+// ====================================================================
+
+async function showAddUserModal() {
+    Swal.fire({
+        title: 'Añadir Nuevo Usuario',
+        html: `
+            <input id="new-user-name" class="swal2-input" placeholder="Nombre completo" required>
+            <input id="new-user-email" type="email" class="swal2-input" placeholder="Correo electrónico" required>
+            <input id="new-user-password" type="password" class="swal2-input" placeholder="Contraseña" required>
+            <input id="new-user-phone" class="swal2-input" placeholder="Teléfono">
+            <label style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                <input type="checkbox" id="new-user-whatsapp" checked> 
+                Recibir notificaciones por WhatsApp
+            </label>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Registrar',
+        preConfirm: () => {
+            const name = document.getElementById('new-user-name').value;
+            const email = document.getElementById('new-user-email').value;
+            const password = document.getElementById('new-user-password').value;
+            const phone = document.getElementById('new-user-phone').value;
+            const whatsapp = document.getElementById('new-user-whatsapp').checked;
+            
+            if (!name || !email || !password) {
+                Swal.showValidationMessage('Nombre, email y contraseña son obligatorios');
+                return false;
+            }
+            return { name, email, password, phone, whatsapp };
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            await addUserManually(result.value);
+        }
+    });
+}
+
+async function addUserManually(userData) {
+    try {
+        const response = await fetch(`${API_URL}/usuarios/registro`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                nombre: userData.name,
+                email: userData.email,
+                password: userData.password,
+                rol: 'user',
+                telefono: userData.phone,
+                whatsapp: userData.whatsapp
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al registrar usuario');
+        }
+        
+        Swal.fire('¡Añadido!', 'Usuario registrado con éxito.', 'success');
+        await searchUsers(true);
+    } catch (error) {
+        Swal.fire('Error', error.message, 'error');
+    }
+}
+
+async function searchUsers(forceRender = false) {
+    const searchTerm = document.getElementById('user-search-input')?.value.toLowerCase() || '';
+    
+    try {
+        const response = await fetch(`${API_URL}/usuarios/`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        if (!response.ok) throw new Error('Error al obtener usuarios');
+        
+        let users = await response.json();
+        users = users.filter(u => u.rol === 'user');
+        
+        let filteredUsers = users;
+        if (!forceRender && searchTerm) {
+            filteredUsers = users.filter(u => 
+                u.nombre.toLowerCase().includes(searchTerm) || 
+                u.email.toLowerCase().includes(searchTerm)
+            );
+        }
+        
+        renderManagedUsersList(filteredUsers);
+    } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        const list = document.getElementById('managed-users-list');
+        if (list) list.innerHTML = '<p>Error al cargar usuarios.</p>';
+    }
+}
+
+function renderManagedUsersList(users) {
+    const list = document.getElementById('managed-users-list');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    
+    if (users.length === 0) {
+        list.innerHTML = '<p>No se encontraron usuarios.</p>';
+        return;
+    }
+    
+    users.forEach(user => {
+        const li = document.createElement('li');
+        li.className = 'list-item';
+        li.innerHTML = `
+            <div class="item-info">
+                <strong>${user.nombre}</strong> (${user.email})
+                <br><span>Teléfono: ${user.telefono || 'No registrado'}</span>
+            </div>
+            <div class="item-actions">
+                <button onclick="deleteUser(${user.id})" style="background-color: #f44336;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+}
+
+async function deleteUser(userId) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "¡No podrás revertir esto!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                await fetch(`${API_URL}/usuarios/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado.', 'success');
+                await searchUsers(true);
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+    });
+}
+
+// ====================================================================
+// 9. FUNCIONES DE UTILIDAD
 // ====================================================================
 
 function calculatePoints(type, weight) {
@@ -591,10 +808,9 @@ function getStatusName(status) {
 }
 
 // ====================================================================
-// 8. INICIALIZACIÓN
+// 10. INICIALIZACIÓN
 // ====================================================================
 
-// Verificar si hay token guardado al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
     const savedToken = localStorage.getItem('token');
     if (savedToken) {
