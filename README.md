@@ -1,6 +1,11 @@
 # ♻️ ARDI-MI API
 
-Sistema backend desarrollado con FastAPI para la gestión de recolección de residuos.
+Es una propuesta para un sistema backend desarrollado con FastAPI para la gestión de recolección de residuos.
+
+Ardi-MI esta encarga de recolectar los residuos de cada uno de los hogares que tengan su contrato con la compañia.
+Cada hogar o cada familia tiene el derecho, teniendo sus servicios contratados, de realizar la solicitud, definir cual sera su residuo y su peso aproximado (la compañia dispondra de multiples disponibles de pesos para el pesaje de los desechos), añadira su dirección y solicitara todo ok. 
+De aqui en adelante, la solicitud es creada, es notificada al centro del panel central de la compañia, y esta le asignara dos o tres rutas de recogidas, dependiendo de la disponibilidad de vehiculos recolectores, t solo quedara que esto sea recogido, y vuelto a pesar por los carros en sus pesos, y confirmado el peso.
+
 
 ---
 
