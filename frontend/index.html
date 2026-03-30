@@ -6,17 +6,17 @@
   <title>ARDI-MI ♻️ - Gestión de Residuos</title>
   
   <!-- Leaflet CSS y JS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<!-- Nominatim para geocodificación reversa (obtener dirección desde coordenadas) -->
-<script src="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Toastify CSS/JS para notificaciones -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="../frontend/styles.css">
-
 </head>
 
 <body>
@@ -112,15 +112,13 @@
                 <option value="peligroso">Peligroso ☣️</option>
             </select>
             <input type="number" id="wasteWeight" placeholder="Peso estimado (kg)" required min="0.1" step="0.1" />
-            <!--Campo para la dirección de usuario..!-->
-            <input type="text" id="collectionAddress" placeholder="Dirección de recolección" required />
 
-                    <!-- MAPA -->
+            <!-- MAPA -->
             <div style="margin: 15px 0;">
-            <label>📍 Selecciona tu ubicación en el mapa:</label>
-            <div id="map" style="height: 300px; width: 100%; border-radius: 8px; margin-top: 8px;"></div>
-            <input type="text" id="collectionAddress" placeholder="Dirección (se completará automáticamente)" required readonly style="background-color: #f5f5f5; margin-top: 10px;" />
-          </div>
+              <label>📍 Selecciona tu ubicación en el mapa:</label>
+              <div id="map" style="height: 300px; width: 100%; border-radius: 8px; margin-top: 8px;"></div>
+              <input type="text" id="collectionAddress" placeholder="Dirección (se completará automáticamente)" required readonly style="background-color: #f5f5f5; margin-top: 10px;" />
+            </div>
 
             <button onclick="createCollectionRequest()">Confirmar Solicitud</button>
         </div>

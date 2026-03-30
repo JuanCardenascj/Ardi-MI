@@ -1,6 +1,6 @@
 // ====================================================================
 // ARDI-MI ♻️ - GESTIÓN DE RESIDUOS (script.js)
-// VERSIÓN COMPLETA Y FUNCIONAL
+// VERSIÓN COMPLETA CON MAPA Y NOTIFICACIONES
 // ====================================================================
 
 // Configuración de la API
@@ -8,6 +8,9 @@ const API_URL = 'http://localhost:8000';
 let currentUser = null;
 let authToken = null;
 let notificationInterval = null;
+let map = null;
+let marker = null;
+let notificationCheckInterval = null;
 
 // ====================================================================
 // 1. FUNCIONES DE UTILIDAD PARA LA API
@@ -34,6 +37,111 @@ async function apiFetch(endpoint, options = {}) {
     }
     
     return response.json();
+}
+
+// Notificaciones Toast
+function showToast(message, type = 'info') {
+    const colors = {
+        success: '#4CAF50',
+        error: '#F44336',
+        warning: '#FFC107',
+        info: '#2196F3'
+    };
+    
+    Toastify({
+        text: message,
+        duration: 5000,
+        gravity: "top",
+        position: "right",
+        backgroundColor: colors[type] || colors.info,
+        close: true,
+        stopOnFocus: true
+    }).showToast();
+}
+
+// Inicializar mapa
+function initMap() {
+    if (map) return; // Ya está inicializado
+    
+    const defaultLat = 4.5709;
+    const defaultLng = -74.2973;
+    
+    map = L.map('map').setView([defaultLat, defaultLng], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    
+    updateAddressFromCoords(defaultLat, defaultLng);
+    
+    marker.on('dragend', function(e) {
+        const latlng = marker.getLatLng();
+        updateAddressFromCoords(latlng.lat, latlng.lng);
+    });
+    
+    map.on('click', function(e) {
+        marker.setLatLng(e.latlng);
+        updateAddressFromCoords(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+async function updateAddressFromCoords(lat, lng) {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=es`);
+        const data = await response.json();
+        
+        let address = '';
+        if (data.display_name) {
+            const parts = [];
+            if (data.address.road) parts.push(data.address.road);
+            if (data.address.suburb) parts.push(data.address.suburb);
+            if (data.address.city || data.address.town) parts.push(data.address.city || data.address.town);
+            if (data.address.state) parts.push(data.address.state);
+            address = parts.join(', ');
+        } else {
+            address = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+        
+        document.getElementById('collectionAddress').value = address;
+        window.selectedCoords = { lat, lng, address };
+        
+    } catch (error) {
+        console.error('Error obteniendo dirección:', error);
+        document.getElementById('collectionAddress').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        window.selectedCoords = { lat, lng, address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
+    }
+}
+
+// Polling de notificaciones
+function startNotificationPolling() {
+    if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+    
+    notificationCheckInterval = setInterval(async () => {
+        if (!currentUser) return;
+        
+        try {
+            if (currentUser.rol === 'user') {
+                const requests = await apiFetch('/solicitudes/');
+                const pendingAccepted = requests.filter(r => r.estado === 'aceptada');
+                
+                // Verificar notificaciones no mostradas (usar localStorage para track)
+                const shownNotifications = JSON.parse(localStorage.getItem('shownNotifications') || '[]');
+                
+                pendingAccepted.forEach(request => {
+                    if (!shownNotifications.includes(request.id)) {
+                        showToast(`¡Tu solicitud #${request.id} ha sido ACEPTADA! Prepara tus residuos.`, 'success');
+                        shownNotifications.push(request.id);
+                    }
+                });
+                
+                localStorage.setItem('shownNotifications', JSON.stringify(shownNotifications));
+            }
+        } catch (e) {
+            // Silently fail
+        }
+    }, 30000);
 }
 
 // ====================================================================
@@ -69,7 +177,9 @@ function logout() {
     currentUser = null;
     authToken = null;
     localStorage.removeItem('token');
+    localStorage.removeItem('shownNotifications');
     if (notificationInterval) clearInterval(notificationInterval);
+    if (notificationCheckInterval) clearInterval(notificationCheckInterval);
     showLoginForm();
 }
 
@@ -122,12 +232,16 @@ async function login() {
             console.log('Usuario sin puntos aún');
         }
         
+        // Limpiar notificaciones guardadas al iniciar sesión
+        localStorage.removeItem('shownNotifications');
+        
         Swal.fire({
             title: "¡Bienvenido!",
             text: `Has iniciado sesión como ${currentUser.nombre}`,
             icon: "success"
         }).then(() => {
             showDashboard();
+            startNotificationPolling();
         });
         
     } catch (error) {
@@ -225,6 +339,14 @@ async function updateDashboard() {
     if (currentUser.rol === 'user') {
         document.getElementById('user-section').classList.remove('hidden');
         await updateUserSection();
+        
+        // Inicializar el mapa después de mostrar la sección
+        setTimeout(() => {
+            if (document.getElementById('map') && !map) {
+                initMap();
+            }
+        }, 100);
+        
     } else if (currentUser.rol === 'company') {
         document.getElementById('company-section').classList.remove('hidden');
         await updateCompanySection();
@@ -237,7 +359,6 @@ async function updateDashboard() {
 
 async function updateUserSection() {
     try {
-        // Obtener puntos totales reales
         const puntosData = await apiFetch('/puntos/total');
         currentUser.points = puntosData.total;
         document.getElementById('total-points').textContent = currentUser.points;
@@ -252,19 +373,14 @@ async function updateUserSection() {
 
 async function loadUserRequests() {
     try {
-        // Obtener solicitudes del usuario
         const requests = await apiFetch('/solicitudes/');
-        
-        // Obtener historial de puntos (reales)
         const puntosHistorial = await apiFetch('/puntos/');
         
         renderUserRequestsList(requests);
         
-        // Crear gráfico con los puntos REALES del historial
         const ctx = document.getElementById('pointsChart').getContext('2d');
         if (window.pointsChart) window.pointsChart.destroy();
         
-        // Si hay puntos en el historial, mostrar gráfico
         if (puntosHistorial.length > 0) {
             window.pointsChart = new Chart(ctx, {
                 type: 'bar',
@@ -281,17 +397,9 @@ async function loadUserRequests() {
                     scales: { 
                         y: { 
                             beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Puntos'
-                            }
+                            title: { display: true, text: 'Puntos' }
                         },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Fecha de recolección'
-                            }
-                        }
+                        x: { title: { display: true, text: 'Fecha de recolección' } }
                     },
                     plugins: {
                         tooltip: {
@@ -306,7 +414,6 @@ async function loadUserRequests() {
                 }
             });
         } else {
-            // Mostrar mensaje si no hay puntos
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.font = "16px Arial";
             ctx.fillStyle = "#999";
@@ -336,6 +443,7 @@ function renderUserRequestsList(requests) {
                 <strong>Solicitud #${request.id}</strong> - ${getWasteTypeName(request.tipo_residuo)}
                 <br>
                 <span>Fecha: ${new Date(request.fecha_solicitud).toLocaleDateString()} | Estado: ${getStatusName(request.estado)}</span>
+                ${request.direccion ? `<br><span>📍 ${request.direccion}</span>` : ''}
             </div>
             <span class="status-badge status-${request.estado}">${getStatusName(request.estado)}</span>
         `;
@@ -347,24 +455,31 @@ async function createCollectionRequest() {
     const date = document.getElementById('collectionDate').value;
     const type = document.getElementById('wasteType').value;
     const weight = parseFloat(document.getElementById('wasteWeight').value);
-    const address = document.getElementById('collectionAddress').value; // ← NUEVO
+    const address = document.getElementById('collectionAddress').value;
     
     if (!date || !type || !weight || weight <= 0 || !address) {
         Swal.fire("Error", "Por favor complete todos los campos correctamente", "error");
         return;
     }
     
+    // Guardar dirección con coordenadas si están disponibles
+    const direccionCompleta = window.selectedCoords 
+        ? `${address} (Coords: ${window.selectedCoords.lat}, ${window.selectedCoords.lng})`
+        : address;
+    
     try {
         const newRequest = await apiFetch('/solicitudes/', {
             method: 'POST',
             body: JSON.stringify({
                 tipo_residuo: type,
-                direccion: address  // ← Usar la dirección del campo
+                direccion: direccionCompleta
             })
         });
         
         const pointsEarned = Math.floor(weight);
         currentUser.points += pointsEarned;
+        
+        showToast(`Solicitud #${newRequest.id} creada exitosamente`, 'success');
         
         Swal.fire({
             title: "¡Solicitud creada!",
@@ -375,11 +490,10 @@ async function createCollectionRequest() {
             icon: "success"
         }).then(() => {
             updateUserSection();
-            // Limpiar formulario
             document.getElementById('collectionDate').value = '';
             document.getElementById('wasteType').value = '';
             document.getElementById('wasteWeight').value = '';
-            document.getElementById('collectionAddress').value = ''; // ← LIMPIAR
+            // No limpiar la dirección para que el usuario pueda reutilizarla
         });
         
     } catch (error) {
@@ -443,6 +557,7 @@ async function acceptRequest(requestId) {
             method: 'PUT',
             body: JSON.stringify({ estado: 'aceptada' })
         });
+        showToast(`Solicitud #${requestId} aceptada`, 'success');
         Swal.fire('Éxito', 'Solicitud aceptada', 'success');
         await updateCompanySection();
     } catch (error) {
@@ -464,6 +579,7 @@ async function rejectRequest(requestId) {
                     method: 'PUT',
                     body: JSON.stringify({ estado: 'rechazada' })
                 });
+                showToast(`Solicitud #${requestId} rechazada`, 'warning');
                 Swal.fire('Rechazada', 'La solicitud ha sido rechazada', 'success');
                 await updateCompanySection();
             } catch (error) {
@@ -493,6 +609,7 @@ async function registerCollection() {
             })
         });
         
+        showToast(`Recolección #${requestId} completada con ${collectedWeight} kg`, 'success');
         Swal.fire('Éxito', 'Recolección registrada', 'success');
         weightInput.value = '';
         await updateCompanySection();
@@ -542,6 +659,7 @@ async function deleteVehicle(vehicleId) {
         if (result.isConfirmed) {
             try {
                 await apiFetch(`/vehiculos/${vehicleId}`, { method: 'DELETE' });
+                showToast(`Vehículo eliminado`, 'success');
                 Swal.fire('Eliminado', 'Vehículo eliminado', 'success');
                 await loadVehicles();
             } catch (error) {
@@ -580,6 +698,7 @@ function showAddVehicleModal() {
                         tipo: document.getElementById('type').value
                     })
                 });
+                showToast(`Vehículo añadido correctamente`, 'success');
                 Swal.fire('Éxito', 'Vehículo añadido', 'success');
                 await loadVehicles();
             } catch (error) {
@@ -736,6 +855,7 @@ async function addUserManually(userData) {
             throw new Error(error.detail || 'Error al registrar usuario');
         }
         
+        showToast(`Usuario ${userData.name} registrado`, 'success');
         Swal.fire('¡Añadido!', 'Usuario registrado con éxito.', 'success');
         await searchUsers(true);
     } catch (error) {
@@ -790,6 +910,7 @@ function renderManagedUsersList(users) {
             <div class="item-info">
                 <strong>${user.nombre}</strong> (${user.email})
                 <br><span>Teléfono: ${user.telefono || 'No registrado'}</span>
+                <br><span>Puntos: ${user.puntos_totales || 0}</span>
             </div>
             <div class="item-actions">
                 <button onclick="deleteUser(${user.id})" style="background-color: #f44336;">
@@ -815,6 +936,7 @@ async function deleteUser(userId) {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
+                showToast(`Usuario eliminado`, 'success');
                 Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado.', 'success');
                 await searchUsers(true);
             } catch (error) {

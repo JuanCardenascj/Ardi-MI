@@ -9,7 +9,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-position: center;
   opacity: 1.0;
-  background-color: transparent; /* Permite ver el fondo con el logo */
+  background-color: transparent;
   margin: 0;
   padding: 0;
   display: flex;
@@ -124,7 +124,6 @@ button:hover {
 }
 
 /* Estilos específicos del Dashboard */
-
 #dashboard-container {
   width: 100%;
   max-width: 1200px;
@@ -163,51 +162,52 @@ button:hover {
 
 /* Tarjetas y Listas */
 .request-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  animation: fadeIn 0.3s ease;
 }
 
 .request-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .request-details {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .detail-item {
-    flex: 1 1 45%;
-    font-size: 0.9em;
+  flex: 1 1 45%;
+  font-size: 0.9em;
 }
 
 .detail-label {
-    font-weight: bold;
-    color: var(--dark);
-    display: block;
+  font-weight: bold;
+  color: var(--dark);
+  display: block;
 }
 
 .request-actions button {
-    width: auto;
-    margin-right: 10px;
-    padding: 8px 15px;
+  width: auto;
+  margin-right: 10px;
+  padding: 8px 15px;
 }
 
 .status-badge {
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 0.8em;
-    font-weight: bold;
-    color: white;
+  padding: 5px 10px;
+  border-radius: 15px;
+  font-size: 0.8em;
+  font-weight: bold;
+  color: white;
 }
 
 .status-pendiente { background-color: #FFC107; }
@@ -217,34 +217,34 @@ button:hover {
 .status-active { background-color: #4CAF50; }
 .status-inactive { background-color: #FF9800; }
 
-
 /* Listas de vehículos y usuarios */
 .list-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #eee;
-    padding: 10px;
-    margin-bottom: 5px;
-    border-radius: 5px;
-    background-color: #fafafa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #eee;
+  padding: 10px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  background-color: #fafafa;
+  animation: fadeIn 0.3s ease;
 }
 
 .item-info {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .item-actions button {
-    width: auto;
-    padding: 5px 10px;
-    margin-left: 5px;
-    font-size: 0.9em;
+  width: auto;
+  padding: 5px 10px;
+  margin-left: 5px;
+  font-size: 0.9em;
 }
 
 /* Gráficos */
 .chart-container {
-    height: 300px; 
-    margin-bottom: 20px;
+  height: 300px; 
+  margin-bottom: 20px;
 }
 
 /* Botón de Logout */
@@ -256,6 +256,12 @@ button:hover {
 }
 .logout-btn:hover {
   background-color: #d32f2f;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Media Queries para responsividad */
@@ -270,20 +276,55 @@ button:hover {
   }
   
   .logout-btn.desktop-hidden {
-    display: inline-block; /* Muestra el botón de logout en el header para móviles */
+    display: inline-block;
   }
   
   .logout-btn:not(.desktop-hidden) {
-    display: none !important; /* Oculta el botón grande de abajo en móviles */
+    display: none !important;
   }
 
   .request-details {
     flex-direction: column;
   }
+  
+  #map {
+    height: 250px !important;
+  }
+  
+  .request-card {
+    padding: 12px;
+  }
+  
+  .request-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .request-actions button {
+    width: 100%;
+    margin-right: 0;
+  }
+  
+  .detail-item {
+    flex: 1 1 100%;
+  }
+  
+  .list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .item-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 @media (min-width: 769px) {
-    .logout-btn.desktop-hidden {
-        display: none !important; /* Oculta el botón de logout del header en desktop */
-    }
+  .logout-btn.desktop-hidden {
+    display: none !important;
+  }
 }
