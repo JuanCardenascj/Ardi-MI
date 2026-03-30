@@ -236,30 +236,84 @@ async function updateDashboard() {
 // ====================================================================
 
 async function updateUserSection() {
-    document.getElementById('total-points').textContent = currentUser.points;
-    await loadUserRequests();
+    try {
+        // Obtener puntos totales reales
+        const puntosData = await apiFetch('/puntos/total');
+        currentUser.points = puntosData.total;
+        document.getElementById('total-points').textContent = currentUser.points;
+        
+        await loadUserRequests();
+    } catch (error) {
+        console.error('Error actualizando puntos:', error);
+        document.getElementById('total-points').textContent = currentUser.points || 0;
+        await loadUserRequests();
+    }
 }
 
 async function loadUserRequests() {
     try {
+        // Obtener solicitudes del usuario
         const requests = await apiFetch('/solicitudes/');
+        
+        // Obtener historial de puntos (reales)
+        const puntosHistorial = await apiFetch('/puntos/');
+        
         renderUserRequestsList(requests);
         
+        // Crear gráfico con los puntos REALES del historial
         const ctx = document.getElementById('pointsChart').getContext('2d');
         if (window.pointsChart) window.pointsChart.destroy();
         
-        window.pointsChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: requests.map(r => new Date(r.fecha_solicitud).toLocaleDateString()),
-                datasets: [{
-                    label: 'Puntos obtenidos',
-                    data: requests.map(r => calculatePoints(r.tipo_residuo, 1)),
-                    backgroundColor: '#2e7d32'
-                }]
-            },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
-        });
+        // Si hay puntos en el historial, mostrar gráfico
+        if (puntosHistorial.length > 0) {
+            window.pointsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: puntosHistorial.map(p => new Date(p.fecha).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Puntos obtenidos',
+                        data: puntosHistorial.map(p => p.puntos),
+                        backgroundColor: '#2e7d32'
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Puntos'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha de recolección'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const punto = puntosHistorial[context.dataIndex];
+                                    return `${punto.puntos} puntos - ${punto.descripcion || 'Recolección completada'}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // Mostrar mensaje si no hay puntos
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#999";
+            ctx.textAlign = "center";
+            ctx.fillText("Aún no tienes puntos. Completa recolecciones para ganar puntos.", ctx.canvas.width/2, ctx.canvas.height/2);
+        }
+        
     } catch (error) {
         console.error('Error cargando solicitudes:', error);
     }
@@ -293,21 +347,19 @@ async function createCollectionRequest() {
     const date = document.getElementById('collectionDate').value;
     const type = document.getElementById('wasteType').value;
     const weight = parseFloat(document.getElementById('wasteWeight').value);
+    const address = document.getElementById('collectionAddress').value; // ← NUEVO
     
-    if (!date || !type || !weight || weight <= 0) {
+    if (!date || !type || !weight || weight <= 0 || !address) {
         Swal.fire("Error", "Por favor complete todos los campos correctamente", "error");
         return;
     }
-    
-    const address = prompt("Por favor ingresa la dirección de recolección:");
-    if (!address) return;
     
     try {
         const newRequest = await apiFetch('/solicitudes/', {
             method: 'POST',
             body: JSON.stringify({
                 tipo_residuo: type,
-                direccion: address
+                direccion: address  // ← Usar la dirección del campo
             })
         });
         
@@ -316,13 +368,18 @@ async function createCollectionRequest() {
         
         Swal.fire({
             title: "¡Solicitud creada!",
-            text: `Se ha creado tu solicitud. Puntos estimados: ${pointsEarned}`,
+            html: `Se ha creado tu solicitud.<br>
+                   <strong>Dirección:</strong> ${address}<br>
+                   <strong>Puntos estimados:</strong> ${pointsEarned}<br>
+                   <strong>Estado:</strong> Pendiente de aprobación`,
             icon: "success"
         }).then(() => {
             updateUserSection();
+            // Limpiar formulario
             document.getElementById('collectionDate').value = '';
             document.getElementById('wasteType').value = '';
             document.getElementById('wasteWeight').value = '';
+            document.getElementById('collectionAddress').value = ''; // ← LIMPIAR
         });
         
     } catch (error) {
