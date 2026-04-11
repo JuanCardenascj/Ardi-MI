@@ -101,9 +101,6 @@ text
 ### Dashboard de la Empresa
 ![Panel Empresa](frontend/images/Company.jpeg)
 
-### Gráfico de estadísticas
-![Estadísticas](./images/grafico.png)
-
 ### Gestión de vehículos
 ![Vehículos](frontend/images/vehículos.jpeg)
 
