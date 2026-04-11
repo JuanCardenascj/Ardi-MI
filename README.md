@@ -93,13 +93,10 @@ text
 ![Pantalla de Login](frontend/images/DashBoard.jpeg)
 
 ### Dashboard del Usuario
-![Dashboard Usuario](./images/dashboard-usuario.png)
-
-### Mapa interactivo para seleccionar ubicación
-![Mapa de recolección](./images/mapa-interactivo.png)
+![Dashboard Usuario](frontend/images/DashBoardUser.png)
 
 ### Creación de solicitud
-![Formulario de solicitud](./images/solicitud.png)
+![Formulario de solicitud](frontend/images/ardimi20261.jpeg)
 
 ### Dashboard de la Empresa
 ![Panel Empresa](./images/dashboard-empresa.png)
