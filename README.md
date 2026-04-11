@@ -1,4 +1,4 @@
-# ♻️ ARDI-MI - Sistema de Gestión de Recolección de Residuos
+# ♻️ ARDI-MI - Administración Responsable de Desechos Integrales y Manejo Inteligente
 
 ![Logo de ARDI-MI](frontend/images/logo.png)
 
@@ -138,3 +138,29 @@ text
          ↓
 8. El usuario puede canjear sus puntos por recompensas
    (próximamente)
+
+
+## 🖥️ Pantallas del Sistema
+
+### Inicio de Sesión
+![Pantalla de Login](frontend/images/DashBoard.jpeg)
+
+### Dashboard del Usuario
+![Dashboard Usuario](./images/dashboard-usuario.png)
+
+### Mapa interactivo para seleccionar ubicación
+![Mapa de recolección](./images/mapa-interactivo.png)
+
+### Creación de solicitud
+![Formulario de solicitud](./images/solicitud.png)
+
+### Dashboard de la Empresa
+![Panel Empresa](./images/dashboard-empresa.png)
+
+### Gráfico de estadísticas
+![Estadísticas](./images/grafico.png)
+
+### Gestión de vehículos
+![Vehículos](./images/vehiculos.png)
+
+---
