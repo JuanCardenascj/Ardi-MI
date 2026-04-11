@@ -99,12 +99,12 @@ text
 ![Formulario de solicitud](frontend/images/ardimi20261.jpeg)
 
 ### Dashboard de la Empresa
-![Panel Empresa](./images/dashboard-empresa.png)
+![Panel Empresa](frontend/images/Company.jpeg)
 
 ### Gráfico de estadísticas
 ![Estadísticas](./images/grafico.png)
 
 ### Gestión de vehículos
-![Vehículos](./images/vehiculos.png)
+![Vehículos](frontend/images/vehículos.jpeg)
 
 ---
