@@ -1,6 +1,6 @@
 # ♻️ ARDI-MI - Sistema de Gestión de Recolección de Residuos
 
-![Logo de ARDI-MI](./images/logo.png)
+![Logo de ARDI-MI](frontend/images/logo.png)
 
 > **🔒 Repositorio Privado**  
 > Este código es propiedad de ARDI-MI y no está disponible para uso público.  
