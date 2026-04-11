@@ -87,59 +87,6 @@ text
 
 ---
 
-## ⚙️ Instalación y Configuración (Solo para desarrollo interno)
-
-### 1️⃣ Clonar repositorio (acceso restringido)
-
-```bash
-git clone https://github.com/JuanCardenascj/Ardi-MI
-2️⃣ Crear y activar entorno virtual
-bash
-python -m venv venv
-venv\Scripts\activate   # Windows
-source venv/bin/activate # Linux/Mac
-3️⃣ Instalar dependencias
-bash
-pip install -r requirements.txt
-4️⃣ Configurar variables de entorno (.env)
-env
-DATABASE_URL=mysql+pymysql://usuario:contraseña@localhost/ardimi_api
-SECRET_KEY=tu_clave_secreta
-5️⃣ Importar base de datos
-Ejecutar el archivo database.sql en phpMyAdmin o MySQL.
-
-6️⃣ Ejecutar servidor backend
-bash
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-7️⃣ Abrir frontend
-Abrir frontend/index.html en el navegador o usar Live Server.
-
-📊 Flujo de Trabajo del Sistema
-text
-1. Usuario se registra / inicia sesión
-         ↓
-2. Usuario crea solicitud de recolección
-   - Selecciona tipo de residuo, peso y ubicación en mapa
-         ↓
-3. La solicitud queda en estado "Pendiente"
-         ↓
-4. La empresa visualiza la solicitud en su panel
-         ↓
-5. La empresa acepta o rechaza la solicitud
-         ↓
-6. Si es aceptada:
-   - Se asigna a un vehículo recolector
-   - Se programa ruta de recogida
-   - Se realiza la recolección
-   - Se registra el peso real
-         ↓
-7. Se asignan puntos automáticamente al usuario
-   (según tipo de residuo y peso)
-         ↓
-8. El usuario puede canjear sus puntos por recompensas
-   (próximamente)
-
-
 ## 🖥️ Pantallas del Sistema
 
 ### Inicio de Sesión
