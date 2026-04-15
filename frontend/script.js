@@ -1,6 +1,6 @@
 // ====================================================================
 // ARDI-MI ♻️ - GESTIÓN DE RESIDUOS (script.js)
-// VERSIÓN COMPLETA CON MAPA Y NOTIFICACIONES
+// VERSIÓN COMPLETA CON MAPA, NOTIFICACIONES Y RECOMPENSAS
 // ====================================================================
 
 // Configuración de la API
@@ -61,7 +61,7 @@ function showToast(message, type = 'info') {
 
 // Inicializar mapa
 function initMap() {
-    if (map) return; // Ya está inicializado
+    if (map) return;
     
     const defaultLat = 4.5709;
     const defaultLng = -74.2973;
@@ -126,7 +126,6 @@ function startNotificationPolling() {
                 const requests = await apiFetch('/solicitudes/');
                 const pendingAccepted = requests.filter(r => r.estado === 'aceptada');
                 
-                // Verificar notificaciones no mostradas (usar localStorage para track)
                 const shownNotifications = JSON.parse(localStorage.getItem('shownNotifications') || '[]');
                 
                 pendingAccepted.forEach(request => {
@@ -232,7 +231,6 @@ async function login() {
             console.log('Usuario sin puntos aún');
         }
         
-        // Limpiar notificaciones guardadas al iniciar sesión
         localStorage.removeItem('shownNotifications');
         
         Swal.fire({
@@ -340,7 +338,6 @@ async function updateDashboard() {
         document.getElementById('user-section').classList.remove('hidden');
         await updateUserSection();
         
-        // Inicializar el mapa después de mostrar la sección
         setTimeout(() => {
             if (document.getElementById('map') && !map) {
                 initMap();
@@ -364,6 +361,9 @@ async function updateUserSection() {
         document.getElementById('total-points').textContent = currentUser.points;
         
         await loadUserRequests();
+        await loadRecompensas();
+        await loadMisCanjes();
+        
     } catch (error) {
         console.error('Error actualizando puntos:', error);
         document.getElementById('total-points').textContent = currentUser.points || 0;
@@ -462,7 +462,6 @@ async function createCollectionRequest() {
         return;
     }
     
-    // Guardar dirección con coordenadas si están disponibles
     const direccionCompleta = window.selectedCoords 
         ? `${address} (Coords: ${window.selectedCoords.lat}, ${window.selectedCoords.lng})`
         : address;
@@ -493,7 +492,6 @@ async function createCollectionRequest() {
             document.getElementById('collectionDate').value = '';
             document.getElementById('wasteType').value = '';
             document.getElementById('wasteWeight').value = '';
-            // No limpiar la dirección para que el usuario pueda reutilizarla
         });
         
     } catch (error) {
@@ -987,7 +985,116 @@ function getStatusName(status) {
 }
 
 // ====================================================================
-// 10. INICIALIZACIÓN
+// 10. RECOMPENSAS
+// ====================================================================
+
+async function loadRecompensas() {
+    console.log('Cargando recompensas...');
+    try {
+        const recompensas = await apiFetch('/recompensas/');
+        console.log('Recompensas recibidas:', recompensas);
+        
+        const container = document.getElementById('recompensas-container');
+        if (!container) {
+            console.error('No se encontró el contenedor recompensas-container');
+            return;
+        }
+        
+        container.innerHTML = '';
+        
+        if (recompensas.length === 0) {
+            container.innerHTML = '<p>No hay recompensas disponibles.</p>';
+            return;
+        }
+        
+        recompensas.forEach(rec => {
+            const card = document.createElement('div');
+            card.className = 'request-card';
+            card.style.textAlign = 'center';
+            card.innerHTML = `
+                <div style="font-size: 2rem;">
+                    ${rec.imagen ? `<img src="${rec.imagen}" style="width: 60px; height: 60px;">` : '🎁'}
+                </div>
+                <h4>${rec.nombre}</h4>
+                <p>${rec.descripcion || ''}</p>
+                <p><strong>${rec.puntos_necesarios} puntos</strong></p>
+                <p>Stock: ${rec.stock}</p>
+                <button onclick="canjearRecompensa(${rec.id})" 
+                    style="background-color: var(--primary); width: 100%;"
+                    ${currentUser.points < rec.puntos_necesarios ? 'disabled' : ''}>
+                    ${currentUser.points >= rec.puntos_necesarios ? 'Canjear' : 'Puntos insuficientes'}
+                </button>
+            `;
+            container.appendChild(card);
+        });
+        
+        console.log('Recompensas renderizadas correctamente');
+    } catch (error) {
+        console.error('Error cargando recompensas:', error);
+        const container = document.getElementById('recompensas-container');
+        if (container) {
+            container.innerHTML = '<p>Error al cargar recompensas</p>';
+        }
+    }
+}
+
+async function canjearRecompensa(recompensaId) {
+    try {
+        const result = await apiFetch('/recompensas/canjear', {
+            method: 'POST',
+            body: JSON.stringify({ recompensa_id: recompensaId })
+        });
+        
+        showToast(`¡Canje exitoso! Has canjeado una recompensa`, 'success');
+        
+        Swal.fire({
+            title: '¡Canje exitoso!',
+            text: 'Tu recompensa ha sido canjeada. En breve recibirás instrucciones para reclamarla.',
+            icon: 'success'
+        });
+        
+        const puntosData = await apiFetch('/puntos/total');
+        currentUser.points = puntosData.total;
+        document.getElementById('total-points').textContent = currentUser.points;
+        
+        await loadRecompensas();
+        await loadMisCanjes();
+        
+    } catch (error) {
+        Swal.fire('Error', error.message, 'error');
+    }
+}
+
+async function loadMisCanjes() {
+    try {
+        const canjes = await apiFetch('/recompensas/mis-canjes');
+        const list = document.getElementById('mis-canjes-list');
+        list.innerHTML = '';
+        
+        if (canjes.length === 0) {
+            list.innerHTML = '<li>No has realizado ningún canje aún.</li>';
+            return;
+        }
+        
+        canjes.forEach(canje => {
+            const li = document.createElement('li');
+            li.className = 'list-item';
+            li.innerHTML = `
+                <div class="item-info">
+                    <strong>${canje.recompensa?.nombre || 'Recompensa'}</strong>
+                    <br><span>📅 Fecha: ${new Date(canje.fecha_canje).toLocaleDateString()}</span>
+                    <br><span>✅ Estado: ${canje.estado}</span>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    } catch (error) {
+        console.error('Error cargando canjes:', error);
+    }
+}
+
+// ====================================================================
+// 11. INICIALIZACIÓN
 // ====================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
