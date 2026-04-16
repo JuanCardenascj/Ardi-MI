@@ -1094,7 +1094,155 @@ async function loadMisCanjes() {
 }
 
 // ====================================================================
-// 11. INICIALIZACIÓN
+// 11. REPORTES PDF Y EXCEL (SOLO EMPRESA - SOLO COMPLETADAS)
+// ====================================================================
+
+async function exportAllToExcel() {
+    try {
+        showToast('Generando reporte Excel de recolecciones completadas...', 'info');
+        
+        const allRequests = await apiFetch('/solicitudes/');
+        
+        // Filtrar solicitudes que tienen peso_real (están completadas)
+        const completedRequests = allRequests.filter(r => r.peso_real !== null && r.peso_real > 0);
+        
+        console.log('Solicitudes completadas encontradas:', completedRequests.length);
+        console.log('Todas las solicitudes:', allRequests);
+        
+        if (completedRequests.length === 0) {
+            Swal.fire('Sin datos', 'No hay recolecciones completadas para exportar', 'warning');
+            return;
+        }
+        
+        // Obtener nombres de usuarios
+        const users = await apiFetch('/usuarios/');
+        const userMap = {};
+        users.forEach(u => { userMap[u.id] = u.nombre; });
+        
+        const data = completedRequests.map(r => ({
+            'ID': r.id,
+            'Usuario': userMap[r.usuario_id] || 'Desconocido',
+            'Tipo de Residuo': getWasteTypeName(r.tipo_residuo),
+            'Dirección': r.direccion,
+            'Fecha de Solicitud': new Date(r.fecha_solicitud).toLocaleDateString(),
+            'Peso Real (kg)': r.peso_real || '-'
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(data);
+        
+        // Ajustar ancho de columnas
+        ws['!cols'] = [
+            { wch: 8 },   // ID
+            { wch: 25 },  // Usuario
+            { wch: 20 },  // Tipo
+            { wch: 40 },  // Dirección
+            { wch: 15 },  // Fecha
+            { wch: 15 }   // Peso
+        ];
+        
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Recolecciones Completadas');
+        
+        const fecha = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `recolecciones_completadas_${fecha}.xlsx`);
+        
+        showToast(`Reporte Excel generado con ${completedRequests.length} recolecciones completadas`, 'success');
+        
+    } catch (error) {
+        console.error('Error generando Excel:', error);
+        Swal.fire('Error', 'No se pudo generar el reporte Excel', 'error');
+    }
+}
+
+async function exportAllToPDF() {
+    try {
+        showToast('Generando reporte PDF de recolecciones completadas...', 'info');
+        
+        const allRequests = await apiFetch('/solicitudes/');
+        
+        // Filtrar solicitudes que tienen peso_real (están completadas)
+        const completedRequests = allRequests.filter(r => r.peso_real !== null && r.peso_real > 0);
+        
+        console.log('Solicitudes completadas encontradas:', completedRequests.length);
+        
+        if (completedRequests.length === 0) {
+            Swal.fire('Sin datos', 'No hay recolecciones completadas para exportar', 'warning');
+            return;
+        }
+        
+        // Obtener nombres de usuarios
+        const users = await apiFetch('/usuarios/');
+        const userMap = {};
+        users.forEach(u => { userMap[u.id] = u.nombre; });
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        
+        // Título
+        doc.setFontSize(18);
+        doc.setTextColor(46, 125, 50);
+        doc.text('ARDI-MI - Reporte de Recolecciones Completadas', 14, 15);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 22);
+        
+        doc.setDrawColor(46, 125, 50);
+        doc.line(14, 27, 280, 27);
+        
+        // Preparar datos
+        const tableData = completedRequests.map(r => [
+            r.id.toString(),
+            userMap[r.usuario_id] || 'Desconocido',
+            getWasteTypeName(r.tipo_residuo),
+            new Date(r.fecha_solicitud).toLocaleDateString(),
+            r.peso_real ? r.peso_real + ' kg' : '-'
+        ]);
+        
+        doc.autoTable({
+            head: [['ID', 'Usuario', 'Tipo de Residuo', 'Fecha de Recolección', 'Peso Real']],
+            body: tableData,
+            startY: 32,
+            theme: 'striped',
+            headStyles: { fillColor: [46, 125, 50], textColor: [255, 255, 255], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [240, 248, 240] },
+            columnStyles: {
+                0: { cellWidth: 15 },
+                1: { cellWidth: 45 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 35 },
+                4: { cellWidth: 25 }
+            }
+        });
+        
+        // Resumen
+        const finalY = doc.lastAutoTable.finalY + 10;
+        
+        // Calcular total de kg recolectados
+        const totalKg = completedRequests.reduce((sum, r) => sum + (r.peso_real || 0), 0);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(46, 125, 50);
+        doc.text('Resumen de Recolecciones', 14, finalY);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`• Total de recolecciones completadas: ${completedRequests.length}`, 14, finalY + 8);
+        doc.text(`• Total de kg recolectados: ${totalKg} kg`, 14, finalY + 15);
+        
+        const fecha = new Date().toISOString().split('T')[0];
+        doc.save(`recolecciones_completadas_${fecha}.pdf`);
+        
+        showToast(`Reporte PDF generado con ${completedRequests.length} recolecciones completadas`, 'success');
+        
+    } catch (error) {
+        console.error('Error generando PDF:', error);
+        Swal.fire('Error', 'No se pudo generar el reporte PDF', 'error');
+    }
+}
+
+// ====================================================================
+// 12. INICIALIZACIÓN
 // ====================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
