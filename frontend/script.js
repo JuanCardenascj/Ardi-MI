@@ -1,6 +1,6 @@
 // ====================================================================
 // ARDI-MI ♻️ - GESTIÓN DE RESIDUOS (script.js)
-// VERSIÓN COMPLETA CON MAPA, NOTIFICACIONES Y RECOMPENSAS
+// VERSIÓN COMPLETA CON MAPA, NOTIFICACIONES, RECOMPENSAS Y VEHÍCULOS
 // ====================================================================
 
 // Configuración de la API
@@ -378,51 +378,161 @@ async function loadUserRequests() {
         
         renderUserRequestsList(requests);
         
-        const ctx = document.getElementById('pointsChart').getContext('2d');
-        if (window.pointsChart) window.pointsChart.destroy();
+        // Ya NO creamos el gráfico de barras (pointsChart)
+        // Solo cargamos el gráfico de torta
+        await loadPointsPieChart();
         
-        if (puntosHistorial.length > 0) {
-            window.pointsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: puntosHistorial.map(p => new Date(p.fecha).toLocaleDateString()),
-                    datasets: [{
-                        label: 'Puntos obtenidos',
-                        data: puntosHistorial.map(p => p.puntos),
-                        backgroundColor: '#2e7d32'
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true,
-                            title: { display: true, text: 'Puntos' }
-                        },
-                        x: { title: { display: true, text: 'Fecha de recolección' } }
+    } catch (error) {
+        console.error('Error cargando solicitudes:', error);
+    }
+}
+
+// NUEVA FUNCIÓN: Cargar gráfico de torta de puntos por tipo de residuo
+async function loadPointsPieChart() {
+    console.log('=== loadPointsPieChart EJECUTADA ===');
+    try {
+        // Obtener todas las solicitudes del usuario
+        const allRequests = await apiFetch('/solicitudes/');
+        console.log('Todas las solicitudes:', allRequests);
+        
+        // Filtrar solicitudes completadas que tienen peso_real
+        const completedRequests = allRequests.filter(r => r.estado === 'completada' && r.peso_real !== null && r.peso_real > 0);
+        console.log('Solicitudes completadas con peso:', completedRequests);
+        
+        if (completedRequests.length === 0) {
+            console.log('No hay solicitudes completadas con peso real');
+            const canvas = document.getElementById('pointsPieChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#999";
+                ctx.textAlign = "center";
+                ctx.fillText("No hay datos suficientes para mostrar la distribución.", canvas.width/2, canvas.height/2);
+            }
+            return;
+        }
+        
+        // Calcular puntos por tipo de residuo
+        const puntosPorTipo = {
+            'organico': 0,
+            'inorganico': 0,
+            'reciclable': 0,
+            'peligroso': 0
+        };
+        
+        completedRequests.forEach(request => {
+            const tipo = request.tipo_residuo;
+            const puntos = calculatePoints(tipo, request.peso_real);
+            console.log(`Tipo: ${tipo}, Peso: ${request.peso_real}, Puntos: ${puntos}`);
+            if (puntosPorTipo[tipo] !== undefined) {
+                puntosPorTipo[tipo] += puntos;
+            }
+        });
+        
+        console.log('Puntos por tipo:', puntosPorTipo);
+        
+        // Filtrar tipos con puntos > 0
+        const tipos = [];
+        const valores = [];
+        const colores = [];
+        
+        const tipoInfo = {
+            'organico': { nombre: 'Orgánico 🍂', color: '#4CAF50' },
+            'inorganico': { nombre: 'Inorgánico 🏗️', color: '#9E9E9E' },
+            'reciclable': { nombre: 'Reciclable ♻️', color: '#2196F3' },
+            'peligroso': { nombre: 'Peligroso ☣️', color: '#F44336' }
+        };
+        
+        for (const [tipo, puntos] of Object.entries(puntosPorTipo)) {
+            if (puntos > 0) {
+                tipos.push(tipoInfo[tipo].nombre);
+                valores.push(puntos);
+                colores.push(tipoInfo[tipo].color);
+            }
+        }
+        
+        console.log('Tipos a mostrar:', tipos);
+        console.log('Valores:', valores);
+        
+        if (valores.length === 0) {
+            console.log('No hay valores para mostrar');
+            const canvas = document.getElementById('pointsPieChart');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#999";
+                ctx.textAlign = "center";
+                ctx.fillText("No hay datos suficientes para mostrar la distribución.", canvas.width/2, canvas.height/2);
+            }
+            return;
+        }
+        
+        // Destruir gráfico anterior si existe (con try-catch para evitar errores)
+        if (window.pointsPieChart) {
+            try {
+                window.pointsPieChart.destroy();
+            } catch (e) {
+                console.log('Error al destruir gráfico anterior:', e);
+            }
+            window.pointsPieChart = null;
+        }
+        
+        const canvas = document.getElementById('pointsPieChart');
+        if (!canvas) {
+            console.error('No se encontró el canvas pointsPieChart');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        console.log('Canvas encontrado, creando gráfico...');
+        
+        window.pointsPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: tipos,
+                datasets: [{
+                    data: valores,
+                    backgroundColor: colores,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 12 }
+                        }
                     },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const punto = puntosHistorial[context.dataIndex];
-                                    return `${punto.puntos} puntos - ${punto.descripcion || 'Recolección completada'}`;
-                                }
+                    title: {
+                        display: true,
+                        text: 'Puntos por tipo de residuo',
+                        font: { size: 14 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = valores.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} puntos (${percentage}%)`;
                             }
                         }
                     }
                 }
-            });
-        } else {
-            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            ctx.font = "16px Arial";
-            ctx.fillStyle = "#999";
-            ctx.textAlign = "center";
-            ctx.fillText("Aún no tienes puntos. Completa recolecciones para ganar puntos.", ctx.canvas.width/2, ctx.canvas.height/2);
-        }
+            }
+        });
+        
+        console.log('Gráfico creado exitosamente');
         
     } catch (error) {
-        console.error('Error cargando solicitudes:', error);
+        console.error('Error cargando gráfico de torta:', error);
     }
 }
 
@@ -587,14 +697,23 @@ async function rejectRequest(requestId) {
     });
 }
 
+// FUNCIÓN REGISTERCOLLECTION ACTUALIZADA CON VEHÍCULO
 async function registerCollection() {
     const select = document.getElementById('request-select');
+    const vehicleSelect = document.getElementById('vehicle-select');
     const weightInput = document.getElementById('collected-weight');
+    
     const requestId = parseInt(select.value);
+    const vehicleId = parseInt(vehicleSelect.value);
     const collectedWeight = parseFloat(weightInput.value);
     
     if (!requestId || isNaN(collectedWeight) || collectedWeight <= 0) {
         Swal.fire("Error", "Selecciona una solicitud e ingresa un peso válido", "error");
+        return;
+    }
+    
+    if (!vehicleId) {
+        Swal.fire("Error", "Por favor selecciona un vehículo", "error");
         return;
     }
     
@@ -603,13 +722,15 @@ async function registerCollection() {
             method: 'PUT',
             body: JSON.stringify({ 
                 estado: 'completada',
-                peso_real: collectedWeight
+                peso_real: collectedWeight,
+                vehiculo_id: vehicleId
             })
         });
         
-        showToast(`Recolección #${requestId} completada con ${collectedWeight} kg`, 'success');
+        showToast(`Recolección #${requestId} completada con ${collectedWeight} kg usando vehículo ID ${vehicleId}`, 'success');
         Swal.fire('Éxito', 'Recolección registrada', 'success');
         weightInput.value = '';
+        vehicleSelect.value = '';
         await updateCompanySection();
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
@@ -641,8 +762,32 @@ async function loadVehicles() {
                 list.appendChild(li);
             });
         }
+        
+        // También cargar vehículos en el select
+        await loadVehicleSelect();
     } catch (error) {
         console.error('Error cargando vehículos:', error);
+    }
+}
+
+// NUEVA FUNCIÓN: Cargar vehículos en el select
+async function loadVehicleSelect() {
+    try {
+        const vehicles = await apiFetch('/vehiculos/');
+        const vehicleSelect = document.getElementById('vehicle-select');
+        if (!vehicleSelect) return;
+        
+        vehicleSelect.innerHTML = '<option value="">Seleccione un vehículo</option>';
+        
+        vehicles.forEach(vehicle => {
+            const option = document.createElement('option');
+            option.value = vehicle.id;
+            option.textContent = `${vehicle.placa} - ${vehicle.marca} ${vehicle.modelo} (${vehicle.capacidad} kg)`;
+            option.disabled = vehicle.estado !== 'active';
+            vehicleSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error cargando vehículos en select:', error);
     }
 }
 
