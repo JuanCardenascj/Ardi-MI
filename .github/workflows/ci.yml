@@ -14,4 +14,4 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Construir imagen de la API
-      run: docker build -t ardi-api-test c:\Users\HP\Documents\Programación\Ardi-MI\ardimi_api
+      run: docker build -t ardi-api-test ./ardimi_api
