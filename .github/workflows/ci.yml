@@ -1,0 +1,17 @@
+name: Docker Build CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Construir imagen de la API
+      run: docker build -t ardi-api-test ./ardimi_api
