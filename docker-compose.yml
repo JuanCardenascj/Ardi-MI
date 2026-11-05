@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Contenedor 1: La API
+  api:
+    build: ./ardimi_api
+    container_name: ardi_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db  # Usa el nombre del servicio, NO localhost
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy # Espera a que la DB esté lista
+    networks:
+      - ardi_network
+
+  # Contenedor 2: Base de Datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: ardi_db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - db_data:/var/lib/postgresql/data # Volumen para no perder datos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ardi_network
+
+networks:
+  ardi_network:
+    driver: bridge
+
+volumes:
+  db_data:
