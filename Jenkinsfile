@@ -31,7 +31,7 @@ pipeline {
                 || (echo "FALLO EL POST" && exit 1)
                 '''
                 
-                # sh 'curl -f http://localhost:8000/solicitudes || exit 1'
+                sh 'curl -f http://localhost:8000/solicitudes || exit 1'
                 
                 echo '¡Comunicación entre contenedores verificada con éxito!'
             }
