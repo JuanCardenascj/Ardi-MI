@@ -1,4 +1,4 @@
-# ♻️ ARDI-MI - Administración Responsable de Desechos Integrales y Manejo Inteligente
+<!-- # ♻️ ARDI-MI - Administración Responsable de Desechos Integrales y Manejo Inteligente
 
 ![Logo de ARDI-MI](frontend/images/logo.png)
 
@@ -104,4 +104,28 @@ text
 ### Gestión de vehículos
 ![Vehículos](frontend/images/vehículos.jpeg)
 
+--- -->
+
+# ♻️ ARDI-MI - Administración Responsable de Desechos Integrales y Manejo Inteligente
+
+![Logo de ARDI-MI](frontend/images/logo.png)
+
+> **🔒 Repositorio Privado**  
+> Este código es propiedad de ARDI-MI y no está disponible para uso público.  
+> El acceso está restringido exclusivamente al equipo de desarrollo autorizado.
+
 ---
+
+## 🐳 Ejecución con Docker (Entrega 1 - CI)
+
+Este proyecto está configurado para ejecutarse completamente en contenedores de Docker, garantizando un entorno reproducible y aislado. La API (Python/FastAPI) y la Base de Datos (PostgreSQL) se comunican a través de una red interna de Docker.
+
+### Requisitos previos
+* Tener instalado **Docker Desktop** (Windows/Mac) o Docker Engine (Linux).
+
+### Instrucciones para levantar el proyecto
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/JuanCardenascj/Ardi-MI.git
+   cd Ardi-MI
