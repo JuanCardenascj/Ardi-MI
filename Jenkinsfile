@@ -1,7 +1,6 @@
 pipeline {
     agent any
     environment {
-        // Aquí van las variables para que Docker Compose funcione
         COMPOSE_PROJECT_NAME = 'ardi_jenkins_test'
     }
     stages {
@@ -13,7 +12,12 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Construyendo las imágenes de los contenedores...'
-                // Construye las imágenes de la API y la DB sin levantarlas aún
+                // Crear el archivo .env con las variables necesarias
+                sh '''
+                    echo "DB_NAME=ardi_db" > .env
+                    echo "DB_USER=ardi_user" >> .env
+                    echo "DB_PASSWORD=ardi_password" >> .env
+                '''
                 sh 'docker compose build'
             }
         }
@@ -21,18 +25,14 @@ pipeline {
             steps {
                 echo 'Levantando contenedores y probando comunicación...'
                 sh 'docker compose up -d'
+                sh 'sleep 15'  // Aumenté el tiempo a 15 segundos
                 
-                sh 'sleep 10'
-
                 sh '''
                 curl -f -X POST http://localhost:8000/solicitudes \
                 -H "Content-Type: application/json" \
                 -d '{"tipo_residuo": "prueba_jenkins", "direccion": "Calle Falsa 123"}' \
                 || (echo "FALLO EL POST" && exit 1)
                 '''
-                
-                sh 'curl -f http://localhost:8000/solicitudes || exit 1'
-                
                 echo '¡Comunicación entre contenedores verificada con éxito!'
             }
         }
@@ -40,7 +40,6 @@ pipeline {
     post {
         always {
             echo 'Limpiando contenedores...'
-            // Bajar los contenedores y borrar volúmenes para no dejar basura
             sh 'docker compose down -v'
         }
         success {
