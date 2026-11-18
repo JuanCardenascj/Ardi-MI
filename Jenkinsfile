@@ -26,13 +26,20 @@ pipeline {
                 sh 'docker compose up -d'
                 sh 'sleep 15'
                 
-                // CAMBIO CLAVE: Ejecutar curl DENTRO del contenedor de la API
-                // Usamos 'localhost' porque estamos dentro del contenedor api
+                // Usamos Python (que sí está en el contenedor) para hacer el POST
                 sh '''
-                docker exec ardi_api curl -f -X POST http://localhost:8000/solicitudes \
-                -H "Content-Type: application/json" \
-                -d '{"tipo_residuo": "prueba_jenkins", "direccion": "Calle Falsa 123"}' \
-                || (echo "FALLO EL POST" && exit 1)
+                docker exec ardi_api python -c "
+import urllib.request, json
+data = json.dumps({'tipo_residuo': 'prueba_jenkins', 'direccion': 'Calle Falsa 123'}).encode('utf-8')
+req = urllib.request.Request('http://localhost:8000/solicitudes', data=data, headers={'Content-Type': 'application/json'})
+try:
+    response = urllib.request.urlopen(req)
+    print('Status:', response.status)
+    print(response.read().decode('utf-8'))
+except Exception as e:
+    print('Error:', e)
+    exit(1)
+"
                 '''
                 echo '¡Comunicación entre contenedores verificada con éxito!'
             }
