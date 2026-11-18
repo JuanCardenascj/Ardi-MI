@@ -12,7 +12,6 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Construyendo las imágenes de los contenedores...'
-                // Crear el archivo .env con las variables necesarias
                 sh '''
                     echo "DB_NAME=ardi_db" > .env
                     echo "DB_USER=ardi_user" >> .env
@@ -25,10 +24,12 @@ pipeline {
             steps {
                 echo 'Levantando contenedores y probando comunicación...'
                 sh 'docker compose up -d'
-                sh 'sleep 15'  // Aumenté el tiempo a 15 segundos
+                sh 'sleep 15'
                 
+                // CAMBIO CLAVE: Ejecutar curl DENTRO del contenedor de la API
+                // Usamos 'localhost' porque estamos dentro del contenedor api
                 sh '''
-                curl -f -X POST http://localhost:8000/solicitudes \
+                docker exec ardi_api curl -f -X POST http://localhost:8000/solicitudes \
                 -H "Content-Type: application/json" \
                 -d '{"tipo_residuo": "prueba_jenkins", "direccion": "Calle Falsa 123"}' \
                 || (echo "FALLO EL POST" && exit 1)
