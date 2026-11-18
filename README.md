@@ -126,4 +126,4 @@ Este proyecto está configurado para ejecutarse con Docker.
 5. La API estará disponible en `http://localhost:8000/solicitudes`.
 
 ## ⚙️ Pipeline de Jenkins (Entrega 2)
-El archivo `Jenkinsfile` contiene las etapas de Checkout, Build y Test. Para ejecutarlo, Jenkins debe tener acceso al socket de Docker y las credenciales configuradas.
+El archivo `Jenkinsfile` contiene las etapas de Checkout, Build y Test. Para ejecutarlo, Jenkins debe tener acceso al socket de Docker y las credenciales configuradas. :D
