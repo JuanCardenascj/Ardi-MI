@@ -106,26 +106,24 @@ text
 
 --- -->
 
-# ♻️ ARDI-MI - Administración Responsable de Desechos Integrales y Manejo Inteligente
+# ♻️ ARDI-MI - Proyecto de Integración Continua
 
-![Logo de ARDI-MI](frontend/images/logo.png)
+## 🐳 Ejecución con Docker (Entrega 1)
 
-> **🔒 Repositorio Privado**  
-> Este código es propiedad de ARDI-MI y no está disponible para uso público.  
-> El acceso está restringido exclusivamente al equipo de desarrollo autorizado.
+Este proyecto está configurado para ejecutarse con Docker.
 
----
-
-## 🐳 Ejecución con Docker (Entrega 1 - CI)
-
-Este proyecto está configurado para ejecutarse completamente en contenedores de Docker, garantizando un entorno reproducible y aislado. La API (Python/FastAPI) y la Base de Datos (PostgreSQL) se comunican a través de una red interna de Docker.
-
-### Requisitos previos
-* Tener instalado **Docker Desktop** (Windows/Mac) o Docker Engine (Linux).
+### Requisitos
+- Docker Desktop instalado.
 
 ### Instrucciones para levantar el proyecto
+1. Clonar el repositorio:
+   `git clone https://github.com/JuanCardenascj/Ardi-MI.git`
+2. Entrar a la carpeta:
+   `cd Ardi-MI`
+3. Crear el archivo `.env` basado en el `.env.example` y llenar las credenciales reales.
+4. Levantar los contenedores:
+   `docker compose up -d`
+5. La API estará disponible en `http://localhost:8000/solicitudes`.
 
-1. **Clonar el repositorio:**
-   ```bash
-   git clone https://github.com/JuanCardenascj/Ardi-MI.git
-   cd Ardi-MI
+## ⚙️ Pipeline de Jenkins (Entrega 2)
+El archivo `Jenkinsfile` contiene las etapas de Checkout, Build y Test. Para ejecutarlo, Jenkins debe tener acceso al socket de Docker y las credenciales configuradas.
