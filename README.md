@@ -149,7 +149,9 @@ Ardi-MI/
 ├── Dockerfile.jenkins    # Imagen personalizada de Jenkins con Docker y Compose
 ├── Jenkinsfile           # Pipeline como código para Jenkins (CI/CD)
 └── README.md             # Documentación principal del proyecto
-🐳 Ejecución Local con Docker (Entrega 1)
+
+
+## 🐳 Ejecución Local con Docker (Entrega 1)
 Para levantar el proyecto en tu entorno local y probar la aplicación manualmente, sigue estos pasos:
 
 1. Clonar el repositorio
@@ -163,11 +165,9 @@ bash
 cp .env.example .env
 Abre el archivo .env recién creado y asigna valores seguros para:
 
-DB_NAME (Nombre de la base de datos)
-
-DB_USER (Usuario de PostgreSQL)
-
-DB_PASSWORD (Contraseña del usuario)
+DB_NAME (ardi_MI)
+DB_USER (ardi_MI)
+DB_PASSWORD (ardi_MI)
 
 3. Levantar los servicios
 bash
@@ -242,21 +242,16 @@ except Exception as e:
 Si el comando anterior devuelve un Status 200, significa que la API se comunicó exitosamente con PostgreSQL usando el nombre del servicio (db).
 
 🔒 Buenas Prácticas y Seguridad
-Este repositorio implementa los siguientes estándares de seguridad e ingeniería:
 
-Credenciales protegidas: Las contraseñas de la base de datos y los tokens de GitHub NUNCA se escriben en el código fuente (ni en el Jenkinsfile).
-
-Uso de plantillas: Se incluye un archivo .env.example para que otros desarrolladores sepan qué variables necesitan, mientras que el archivo .env real está protegido en el .gitignore.
-
-Red interna de Docker: Los contenedores se comunican a través de la red ardi_network usando DNS interno (ej. db) en lugar de IPs fijas, garantizando portabilidad.
-
-Limpieza de entorno: El pipeline destruye sus propios recursos al terminar, evitando la acumulación de basura en el disco (docker compose down -v).
+1. Este repositorio implementa los siguientes estándares de seguridad e ingeniería:
+2. Credenciales protegidas: Las contraseñas de la base de datos y los tokens de GitHub NUNCA se escriben en el código fuente (ni en el Jenkinsfile).
+3. Uso de plantillas: Se incluye un archivo .env.example para que otros desarrolladores sepan qué variables necesitan, mientras que el archivo .env real está protegido en el .gitignore.
+4. Red interna de Docker: Los contenedores se comunican a través de la red ardi_network usando DNS interno (ej. db) en lugar de IPs fijas, garantizando portabilidad.
+5. Limpieza de entorno: El pipeline destruye sus propios recursos al terminar, evitando la acumulación de basura en el disco (docker compose down -v).
 
 🚑 Solución de Problemas (Troubleshooting)
-Si Jenkins falla al ejecutar el pipeline, verifica estos puntos:
 
-Error de permisos en el socket: Ocurre si Jenkins no está corriendo con el usuario correcto. Solución: Asegúrate de ejecutar el contenedor de Jenkins con -v /var/run/docker.sock:/var/run/docker.sock.
-
-Error curl: command not found: Es un error esperado si se intenta usar curl en la imagen de Python slim. Ya está solucionado en este repositorio usando un script interno de Python.
-
-Error de variables de entorno: Verifica que el Jenkinsfile esté inyectando correctamente las variables DB_NAME, DB_USER y DB_PASSWORD antes de llamar a docker compose up.
+1. Si Jenkins falla al ejecutar el pipeline, verifica estos puntos:
+2. Error de permisos en el socket: Ocurre si Jenkins no está corriendo con el usuario correcto. Solución: Asegúrate de ejecutar el contenedor de Jenkins con -v /var/run/docker.sock:/var/run/docker.sock.
+3. Error curl: command not found: Es un error esperado si se intenta usar curl en la imagen de Python slim. Ya está solucionado en este repositorio usando un script interno de Python.
+4. Error de variables de entorno: Verifica que el Jenkinsfile esté inyectando correctamente las variables DB_NAME, DB_USER y DB_PASSWORD antes de llamar a docker compose up.
