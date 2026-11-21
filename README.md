@@ -108,7 +108,7 @@ text
 
 # ♻️ ARDI-MI - Administración Responsable de Desechos Integrales y Manejo Inteligente
 
-![Docker Build CI](https://github.com/JuanCardenascj/Ardi-MI/actions/workflows/docker-build.yml/badge.svg)
+![Docker Build CI](https://github.com/JuanCardenascj/Ardi-MI/actions/workflows/ci.yml)
 
 Este proyecto implementa una solución completa de Integración Continua (CI) para la empresa Ardi-MI. Utiliza **Docker** para la contenerización de microservicios y **Jenkins** como orquestador principal del pipeline de construcción, pruebas y despliegue automatizado.
 
